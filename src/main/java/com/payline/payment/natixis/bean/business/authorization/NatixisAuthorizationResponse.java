@@ -35,7 +35,7 @@ public class NatixisAuthorizationResponse {
         return jwtUserBody;
     }
 
-    public static NatixisAuthorizationResponse fromJson(String json ) throws JsonSyntaxException {
+    public static NatixisAuthorizationResponse fromJson(String json ) {
         return new Gson().fromJson( json, NatixisAuthorizationResponse.class );
     }
 

@@ -28,7 +28,7 @@ public class RFC6749AccessTokenErrorResponse {
         return errorUri;
     }
 
-    public static RFC6749AccessTokenErrorResponse fromJson(String json ) throws JsonSyntaxException {
+    public static RFC6749AccessTokenErrorResponse fromJson(String json ) {
         return new Gson().fromJson( json, RFC6749AccessTokenErrorResponse.class );
     }
 

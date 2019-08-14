@@ -13,8 +13,8 @@ public class PluginException extends RuntimeException {
 
     public static final int ERROR_CODE_MAX_LENGTH = 50;
 
-    private String errorCode;
-    private FailureCause failureCause;
+    private final String errorCode;
+    private final FailureCause failureCause;
 
     public PluginException( String message ){
         this( message, FailureCause.INTERNAL_ERROR );

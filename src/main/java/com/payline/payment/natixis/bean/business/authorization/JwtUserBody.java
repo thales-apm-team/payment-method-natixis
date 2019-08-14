@@ -30,7 +30,7 @@ public class JwtUserBody {
         return appName;
     }
 
-    public static JwtUserBody fromJson(String json ) throws JsonSyntaxException {
+    public static JwtUserBody fromJson(String json ) {
         return new Gson().fromJson( json, JwtUserBody.class );
     }
 

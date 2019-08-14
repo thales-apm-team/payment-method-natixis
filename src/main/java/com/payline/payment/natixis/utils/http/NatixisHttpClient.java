@@ -102,7 +102,9 @@ public class NatixisHttpClient {
 
     public void init( PartnerConfiguration partnerConfiguration ){
         if( this.initialized.compareAndSet(false, true) ){
-            int connectionRequestTimeout, connectTimeout, socketTimeout;
+            int connectionRequestTimeout;
+            int connectTimeout;
+            int socketTimeout;
             try {
                 // request config timeouts
                 connectionRequestTimeout = Integer.parseInt(config.get("http.connectionRequestTimeout"));
