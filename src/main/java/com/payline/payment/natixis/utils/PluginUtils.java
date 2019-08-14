@@ -9,6 +9,9 @@ import java.util.List;
 
 public class PluginUtils {
 
+    /* Static utility class : no need to instantiate it (Sonar bug fix) */
+    private PluginUtils(){}
+
     /**
      * Convert the path and headers of a {@link HttpRequestBase} to a readable {@link String}.
      * Mainly, for debugging purpose.

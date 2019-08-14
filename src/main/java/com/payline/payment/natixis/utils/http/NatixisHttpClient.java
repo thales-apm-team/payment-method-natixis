@@ -61,6 +61,8 @@ public class NatixisHttpClient {
     private static final String API_PAYMENT_PATH_STATUS_TOKEN = "{paymentRequestResourceId}";
     private static final String API_PAYMENT_PATH_STATUS = "/payment-requests/" + API_PAYMENT_PATH_STATUS_TOKEN;
 
+    private static final String HTTP_HEADER_X_REQUEST_ID = "X-Request-ID";
+
     private static final Algorithm SIGNATURE_ALGORITHM = Algorithm.RSA_SHA256;
 
     private static final String SIGNATURE_KEYID = "sign-qua-monext"; // TODO: Partner configuration (waiting for Q15 answer)
@@ -160,104 +162,88 @@ public class NatixisHttpClient {
      * @param requestConfiguration the request configuration
      */
     public void authorize( RequestConfiguration requestConfiguration ){
-        if( !isAuthorized() ){
-            String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL);
-            if( baseUrl == null ){
-                throw new InvalidDataException("Missing auth API base url in partnerConfiguration");
-            }
-
-            // Init request
-            URI uri;
-            try {
-                uri = new URI(baseUrl + API_AUTH_PATH_OAUTH_TOKEN);
-            }
-            catch (URISyntaxException e) {
-                throw new InvalidDataException("Authorization API URL is invalid", e);
-            }
-            HttpPost httpPost = new HttpPost(uri);
-
-            // Authorization header
-            ContractProperty clientId = requestConfiguration.getContractConfiguration().getProperty(Constants.ContractConfigurationKeys.CLIENT_ID);
-            ContractProperty clientSecret = requestConfiguration.getContractConfiguration().getProperty(Constants.ContractConfigurationKeys.CLIENT_SECRET);
-            if( clientId == null || clientSecret == null ){
-                throw new InvalidDataException("Missing clientId or clientSecret in contractConfiguration");
-            }
-            String auth = clientId.getValue() + ":" + clientSecret.getValue();
-            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.ISO_8859_1));
-            String authHeader = "Basic " + new String(encodedAuth);
-            httpPost.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
-
-            // Content-Type
-            httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded");
-
-            // www-form-urlencoded content
-            StringEntity data = new StringEntity("grant_type=client_credentials", StandardCharsets.UTF_8);
-            httpPost.setEntity(data);
-
-            // Execute request
-            StringResponse response = this.execute( httpPost );
-
-            // Handle potential error
-            if( response.getStatusCode() != HttpStatus.SC_OK ){
-                RFC6749AccessTokenErrorResponse errorResponse;
-                try {
-                    errorResponse = RFC6749AccessTokenErrorResponse.fromJson( response.getContent() );
-                }
-                catch( JsonSyntaxException e ){
-                    errorResponse = null;
-                }
-
-                if( errorResponse != null && errorResponse.getError() != null ){
-                    if( errorResponse.getErrorDescription() != null ){
-                        LOGGER.error( "Authorization error: {}", errorResponse.getErrorDescription() );
-                    }
-                    throw new PluginException("authorization error: " + errorResponse.getError(), FailureCause.INVALID_DATA);
-                }
-                else {
-                    throw new PluginException("unknown authorization error", FailureCause.PARTNER_UNKNOWN_ERROR);
-                }
-            }
-
-            // Build authorization from response content
-            Authorization.AuthorizationBuilder authBuilder = new Authorization.AuthorizationBuilder();
-            try {
-                // parse response content
-                NatixisAuthorizationResponse authResponse = NatixisAuthorizationResponse.fromJson( response.getContent() );
-
-                // retrieve access token & token type
-                if( authResponse.getAccessToken() == null ){
-                    throw new PluginException("No access_token in " + API_AUTH_PATH_OAUTH_TOKEN + " response", FailureCause.COMMUNICATION_ERROR);
-                }
-                authBuilder.withAccessToken( authResponse.getAccessToken() )
-                        .withTokenType( authResponse.getTokenType() == null ? "Bearer" : authResponse.getTokenType() );
-
-                // expiration delay
-                long expiresIn = 60L * 5 * 1000; // 5 minutes default expiration time
-                if( authResponse.getExpiresIn() != null ){
-                    expiresIn = 1000L * authResponse.getExpiresIn();
-                }
-
-                // authorization time
-                long authTime = System.currentTimeMillis();
-                if( authResponse.getJwtUserBody() != null ) {
-                    JwtUserBody jwtUserBody = JwtUserBody.fromJson(authResponse.getJwtUserBody());
-                    if (jwtUserBody.getAuthTime() != null) {
-                        authTime = jwtUserBody.getAuthTime() * 1000;
-                    }
-                }
-
-                // calculate expiration date
-                Date expiresAt = new Date( authTime + expiresIn );
-                authBuilder.withExpiresAt( expiresAt );
-
-                this.authorization = authBuilder.build();
-            }
-            catch(JsonSyntaxException | IllegalStateException e){
-                throw new PluginException("Failed to parse authorization response", FailureCause.COMMUNICATION_ERROR, e);
-            }
-        }
-        else {
+        if( isAuthorized() ){
             LOGGER.info("Client already contains a valid authorization");
+            return;
+        }
+
+        String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL);
+        if( baseUrl == null ){
+            throw new InvalidDataException("Missing auth API base url in partnerConfiguration");
+        }
+
+        // Init request
+        URI uri;
+        try {
+            uri = new URI(baseUrl + API_AUTH_PATH_OAUTH_TOKEN);
+        }
+        catch (URISyntaxException e) {
+            throw new InvalidDataException("Authorization API URL is invalid", e);
+        }
+        HttpPost httpPost = new HttpPost(uri);
+
+        // Authorization header
+        ContractProperty clientId = requestConfiguration.getContractConfiguration().getProperty(Constants.ContractConfigurationKeys.CLIENT_ID);
+        ContractProperty clientSecret = requestConfiguration.getContractConfiguration().getProperty(Constants.ContractConfigurationKeys.CLIENT_SECRET);
+        if( clientId == null || clientSecret == null ){
+            throw new InvalidDataException("Missing clientId or clientSecret in contractConfiguration");
+        }
+        String auth = clientId.getValue() + ":" + clientSecret.getValue();
+        byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.ISO_8859_1));
+        String authHeader = "Basic " + new String(encodedAuth);
+        httpPost.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+
+        // Content-Type
+        httpPost.setHeader(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded");
+
+        // www-form-urlencoded content
+        StringEntity data = new StringEntity("grant_type=client_credentials", StandardCharsets.UTF_8);
+        httpPost.setEntity(data);
+
+        // Execute request
+        StringResponse response = this.execute( httpPost );
+
+        // Handle potential error
+        if( response.getStatusCode() != HttpStatus.SC_OK ){
+            throw handleAuthorizationErrorResponse( response );
+        }
+
+        // Build authorization from response content
+        Authorization.AuthorizationBuilder authBuilder = new Authorization.AuthorizationBuilder();
+        try {
+            // parse response content
+            NatixisAuthorizationResponse authResponse = NatixisAuthorizationResponse.fromJson( response.getContent() );
+
+            // retrieve access token & token type
+            if( authResponse.getAccessToken() == null ){
+                throw new PluginException("No access_token in " + API_AUTH_PATH_OAUTH_TOKEN + " response", FailureCause.COMMUNICATION_ERROR);
+            }
+            authBuilder.withAccessToken( authResponse.getAccessToken() )
+                    .withTokenType( authResponse.getTokenType() == null ? "Bearer" : authResponse.getTokenType() );
+
+            // expiration delay
+            long expiresIn = 60L * 5 * 1000; // 5 minutes default expiration time
+            if( authResponse.getExpiresIn() != null ){
+                expiresIn = 1000L * authResponse.getExpiresIn();
+            }
+
+            // authorization time
+            long authTime = System.currentTimeMillis();
+            if( authResponse.getJwtUserBody() != null ) {
+                JwtUserBody jwtUserBody = JwtUserBody.fromJson(authResponse.getJwtUserBody());
+                if (jwtUserBody.getAuthTime() != null) {
+                    authTime = jwtUserBody.getAuthTime() * 1000;
+                }
+            }
+
+            // calculate expiration date
+            Date expiresAt = new Date( authTime + expiresIn );
+            authBuilder.withExpiresAt( expiresAt );
+
+            this.authorization = authBuilder.build();
+        }
+        catch(JsonSyntaxException | IllegalStateException e){
+            throw new PluginException("Failed to parse authorization response", FailureCause.COMMUNICATION_ERROR, e);
         }
     }
 
@@ -294,45 +280,23 @@ public class NatixisHttpClient {
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, this.authorization.getHeaderValue());
         headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
-        headers.put("X-Request-ID", UUID.randomUUID().toString());
+        headers.put(HTTP_HEADER_X_REQUEST_ID, UUID.randomUUID().toString());
 
         // PSU information headers
-        if( psuInformation.getIpAddress() != null ){
-            headers.put("PSUAddress", psuInformation.getIpAddress());
-        }
-        if( psuInformation.getIpPort() != null ){
-            headers.put("PSUPort", psuInformation.getIpPort().toString());
-        }
-        if( psuInformation.getHttpMethod() != null ){
-            headers.put("PSUHTTPMethod", psuInformation.getHttpMethod());
-        }
+        putIfNotNull(headers, "PSUAddress", psuInformation.getIpAddress() );
+        putIfNotNull(headers, "PSUPort", psuInformation.getIpPort().toString() );
+        putIfNotNull(headers, "PSUHTTPMethod", psuInformation.getHttpMethod() );
         if( psuInformation.getLastLogin() != null ){
             headers.put("PSUDate", new SimpleDateFormat("yyyyMMddHHmmss").format( psuInformation.getLastLogin() ));
         }
-        if( psuInformation.getHeaderUserAgent() != null ){
-            headers.put("PSUUserAgent", psuInformation.getHeaderUserAgent());
-        }
-        if( psuInformation.getHeaderReferer() != null ){
-            headers.put("PSUReferer", psuInformation.getHeaderReferer());
-        }
-        if( psuInformation.getHeaderAccept() != null ){
-            headers.put("PSUAccept", psuInformation.getHeaderAccept());
-        }
-        if( psuInformation.getHeaderAcceptCharset() != null ){
-            headers.put("PSUAcceptCharset", psuInformation.getHeaderAcceptCharset());
-        }
-        if( psuInformation.getHeaderAcceptEncoding() != null ){
-            headers.put("PSUAcceptEncoding", psuInformation.getHeaderAcceptEncoding());
-        }
-        if( psuInformation.getHeaderAcceptLanguage() != null ){
-            headers.put("PSUAcceptLanguage", psuInformation.getHeaderAcceptLanguage());
-        }
-        if( psuInformation.getGeoLocation() != null ){
-            headers.put("PsuGeoLocation", psuInformation.getGeoLocation());
-        }
-        if( psuInformation.getDeviceId() != null ){
-            headers.put("PSU-Device-ID", psuInformation.getDeviceId());
-        }
+        putIfNotNull(headers, "PSUUserAgent", psuInformation.getHeaderUserAgent() );
+        putIfNotNull(headers, "PSUReferer", psuInformation.getHeaderReferer() );
+        putIfNotNull(headers, "PSUAccept", psuInformation.getHeaderAccept() );
+        putIfNotNull(headers, "PSUAcceptCharset", psuInformation.getHeaderAcceptCharset() );
+        putIfNotNull(headers, "PSUAcceptEncoding", psuInformation.getHeaderAcceptEncoding() );
+        putIfNotNull(headers, "PSUAcceptLanguage", psuInformation.getHeaderAcceptLanguage() );
+        putIfNotNull(headers, "PsuGeoLocation", psuInformation.getGeoLocation() );
+        putIfNotNull(headers, "PSU-Device-ID", psuInformation.getDeviceId() );
 
         // Digest header
         String digestBody = jsonBody.replaceAll("[\\n\\r]+[ ]*", "")
@@ -357,7 +321,7 @@ public class NatixisHttpClient {
         Key privateKey = getPrivateKey();
 
         // Signature
-        Signature signature = new Signature(SIGNATURE_KEYID, SIGNATURE_ALGORITHM, null, "(request-target)", "X-Request-ID", "Digest");
+        Signature signature = new Signature(SIGNATURE_KEYID, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID, "Digest");
         Signer signer = new Signer(privateKey, signature);
         try {
             signature = signer.sign(httpPost.getMethod(), uri.getPath(), headers);
@@ -402,7 +366,7 @@ public class NatixisHttpClient {
         // Headers
         Map<String, String> headers = new HashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, this.authorization.getHeaderValue());
-        headers.put("X-Request-ID", UUID.randomUUID().toString());
+        headers.put(HTTP_HEADER_X_REQUEST_ID, UUID.randomUUID().toString());
         for (Map.Entry<String, String> h : headers.entrySet()) {
             httpGet.setHeader(h.getKey(), h.getValue());
         }
@@ -411,7 +375,7 @@ public class NatixisHttpClient {
         Key privateKey = getPrivateKey();
 
         // Signature
-        Signature signature = new Signature(SIGNATURE_KEYID, SIGNATURE_ALGORITHM, null, "(request-target)", "X-Request-ID");
+        Signature signature = new Signature(SIGNATURE_KEYID, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID);
         Signer signer = new Signer(privateKey, signature);
         try {
             signature = signer.sign(httpGet.getMethod(), uri.getPath(), headers);
@@ -481,7 +445,34 @@ public class NatixisHttpClient {
     }
 
     /**
-     * Handle error responses with the specified format (see API swagger descriptors)
+     * Handle error responses with RFC 6749 format.
+     *
+     * @param response The response received, converted as {@link StringResponse}.
+     * @return The {@link PluginException} to throw
+     */
+    PluginException handleAuthorizationErrorResponse( StringResponse response ){
+        RFC6749AccessTokenErrorResponse errorResponse;
+        try {
+            errorResponse = RFC6749AccessTokenErrorResponse.fromJson( response.getContent() );
+        }
+        catch( JsonSyntaxException e ){
+            errorResponse = null;
+        }
+
+        if( errorResponse != null && errorResponse.getError() != null ){
+            if( errorResponse.getErrorDescription() != null ){
+                LOGGER.error( "Authorization error: {}", errorResponse.getErrorDescription() );
+            }
+            return new PluginException("authorization error: " + errorResponse.getError(), FailureCause.INVALID_DATA);
+        }
+        else {
+            return new PluginException("unknown authorization error", FailureCause.PARTNER_UNKNOWN_ERROR);
+        }
+    }
+
+    /**
+     * Handle error responses with the specified format (see API swagger descriptors).
+     *
      * @param response The response received, converted as {@link StringResponse}.
      * @return The {@link PluginException} to throw
      */
@@ -512,6 +503,19 @@ public class NatixisHttpClient {
             return this.rsaHolder.getPrivateKey();
         } catch (GeneralSecurityException e) {
             throw new PluginException("Plugin error: while recovering private key", e);
+        }
+    }
+
+    /**
+     * Put an entry into the given headers map only if the given value is not null.
+     *
+     * @param headers The headers map
+     * @param key The wanted key for the new header
+     * @param value The wanted value for the new header
+     */
+    void putIfNotNull( Map<String, String> headers, String key, String value ){
+        if( value != null ){
+            headers.put( key, value );
         }
     }
 

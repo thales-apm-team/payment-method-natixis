@@ -20,6 +20,8 @@ public class Constants {
         public static final String PURPOSE = "purpose";
         public static final String SERVICE_LEVEL = "serviceLevel";
 
+        /* Static utility class : no need to instantiate it (Sonar bug fix) */
+        private ContractConfigurationKeys(){}
     }
 
     /**
@@ -32,6 +34,11 @@ public class Constants {
         public static final String CLIENT_CERTIFICATE = "clientCertificate";
         public static final String CLIENT_PRIVATE_KEY = "clientPrivateKey";
 
+        /* Static utility class : no need to instantiate it (Sonar bug fix) */
+        private PartnerConfigurationKeys(){}
     }
+
+    /* Static utility class : no need to instantiate it (Sonar bug fix) */
+    private Constants(){}
 
 }
