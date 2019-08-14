@@ -19,6 +19,14 @@ public class Amount {
         this.currency = builder.currency;
     }
 
+    public String getAmount() {
+        return amount;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
     public static class AmountBuilder {
 
         private String amount;

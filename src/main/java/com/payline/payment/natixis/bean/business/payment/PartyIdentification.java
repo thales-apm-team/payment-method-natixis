@@ -29,6 +29,22 @@ public class PartyIdentification {
         this.privateId = builder.privateId;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public PostalAddress getPostalAddress() {
+        return postalAddress;
+    }
+
+    public Identification getOrganisationId() {
+        return organisationId;
+    }
+
+    public Identification getPrivateId() {
+        return privateId;
+    }
+
     public static final class PartyIdentificationBuilder {
         private String name;
         private PostalAddress postalAddress;

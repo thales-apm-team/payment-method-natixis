@@ -15,4 +15,8 @@ public class FinancialInstitutionIdentification {
     public FinancialInstitutionIdentification(String bicFi) {
         this.bicFi = bicFi;
     }
+
+    public String getBicFi() {
+        return bicFi;
+    }
 }

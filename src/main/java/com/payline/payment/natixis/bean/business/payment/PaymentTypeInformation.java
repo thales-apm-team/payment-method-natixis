@@ -36,6 +36,22 @@ public class PaymentTypeInformation {
         this.categoryPurpose = builder.categoryPurpose;
     }
 
+    public String getInstructionPriority() {
+        return instructionPriority;
+    }
+
+    public String getServiceLevel() {
+        return serviceLevel;
+    }
+
+    public String getLocalInstrument() {
+        return localInstrument;
+    }
+
+    public String getCategoryPurpose() {
+        return categoryPurpose;
+    }
+
     public static final class PaymentTypeInformationBuilder {
         private String instructionPriority;
         private String serviceLevel;

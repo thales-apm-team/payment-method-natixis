@@ -25,6 +25,14 @@ public class PostalAddress {
         this.addressLine = builder.addressLine;
     }
 
+    public List<String> getAddressLine() {
+        return addressLine;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
     public static final class PostalAddressBuilder {
         private String country;
         private List<String> addressLine;

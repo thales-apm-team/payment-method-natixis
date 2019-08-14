@@ -32,6 +32,18 @@ public class CreditTransferTransactionInformation {
         this.remittanceInformation = builder.remittanceInformation;
     }
 
+    public PaymentIdentification getPaymentIdentification() {
+        return paymentIdentification;
+    }
+
+    public Amount getInstructedAmount() {
+        return instructedAmount;
+    }
+
+    public List<String> getRemittanceInformation() {
+        return remittanceInformation;
+    }
+
     public static class CreditTransferTransactionInformationBuilder {
 
         private PaymentIdentification paymentIdentification;

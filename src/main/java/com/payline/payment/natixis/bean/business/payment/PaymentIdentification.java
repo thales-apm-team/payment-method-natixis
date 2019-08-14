@@ -25,4 +25,12 @@ public class PaymentIdentification {
         this.instructionIdentification = instructionIdentification;
         this.endToEndIdentification = endToEndIdentification;
     }
+
+    public String getInstructionIdentification() {
+        return instructionIdentification;
+    }
+
+    public String getEndToEndIdentification() {
+        return endToEndIdentification;
+    }
 }

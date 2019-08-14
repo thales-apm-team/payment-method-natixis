@@ -19,6 +19,14 @@ public class AccountIdentification {
         this.other = builder.other;
     }
 
+    public String getIban() {
+        return iban;
+    }
+
+    public Identification getOther() {
+        return other;
+    }
+
     public static class AccountIdentificationBuilder {
 
         private String iban;

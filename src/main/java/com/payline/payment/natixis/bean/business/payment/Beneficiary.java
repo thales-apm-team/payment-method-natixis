@@ -27,6 +27,22 @@ public class Beneficiary {
         this.creditorAccount = builder.creditorAccount;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public FinancialInstitutionIdentification getCreditorAgent() {
+        return creditorAgent;
+    }
+
+    public PartyIdentification getCreditor() {
+        return creditor;
+    }
+
+    public AccountIdentification getCreditorAccount() {
+        return creditorAccount;
+    }
+
     public static class BeneficiaryBuilder {
 
         private String id;

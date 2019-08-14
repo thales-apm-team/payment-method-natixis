@@ -24,6 +24,18 @@ public class Identification {
         this.issuer = builder.issuer;
     }
 
+    public String getIdentification() {
+        return identification;
+    }
+
+    public String getSchemeName() {
+        return schemeName;
+    }
+
+    public String getIssuer() {
+        return issuer;
+    }
+
     public static final class IdentificationBuilder {
         private String identification;
         private String schemeName;

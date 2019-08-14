@@ -28,6 +28,18 @@ public class SupplementaryData {
         this.endUserConsentMobile = builder.endUserConsentMobile;
     }
 
+    public String getSuccessfulReportUrl() {
+        return successfulReportUrl;
+    }
+
+    public String getUnsuccessfulReportUrl() {
+        return unsuccessfulReportUrl;
+    }
+
+    public String getEndUserConsentMobile() {
+        return endUserConsentMobile;
+    }
+
     public static final class SupplementaryDataBuilder {
         private String successfulReportUrl;
         private String unsuccessfulReportUrl;
