@@ -65,8 +65,6 @@ public class NatixisHttpClient {
 
     private static final Algorithm SIGNATURE_ALGORITHM = Algorithm.RSA_SHA256;
 
-    private static final String SIGNATURE_KEYID = "sign-qua-monext"; // TODO: Partner configuration (waiting for Q15 answer)
-
     private ConfigProperties config = ConfigProperties.getInstance();
 
     /**
@@ -323,7 +321,8 @@ public class NatixisHttpClient {
         Key privateKey = getPrivateKey();
 
         // Signature
-        Signature signature = new Signature(SIGNATURE_KEYID, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID, "Digest");
+        String keyId = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID);
+        Signature signature = new Signature(keyId, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID, "Digest");
         Signer signer = new Signer(privateKey, signature);
         try {
             signature = signer.sign(httpPost.getMethod(), uri.getPath(), headers);
@@ -377,7 +376,8 @@ public class NatixisHttpClient {
         Key privateKey = getPrivateKey();
 
         // Signature
-        Signature signature = new Signature(SIGNATURE_KEYID, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID);
+        String keyId = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID);
+        Signature signature = new Signature(keyId, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID);
         Signer signer = new Signer(privateKey, signature);
         try {
             signature = signer.sign(httpGet.getMethod(), uri.getPath(), headers);

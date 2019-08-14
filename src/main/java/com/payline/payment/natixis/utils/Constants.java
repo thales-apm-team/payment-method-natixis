@@ -33,6 +33,7 @@ public class Constants {
         public static final String API_PAYMENT_BASE_URL  = "apiPaymentBaseUrl";
         public static final String CLIENT_CERTIFICATE = "clientCertificate";
         public static final String CLIENT_PRIVATE_KEY = "clientPrivateKey";
+        public static final String SIGNATURE_KEYID = "signatureKeyId";
 
         /* Static utility class : no need to instantiate it (Sonar bug fix) */
         private PartnerConfigurationKeys(){}
