@@ -1,5 +1,7 @@
 package com.payline.payment.natixis.utils.http;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.payline.payment.natixis.bean.business.NatixisErrorResponse;
 import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
@@ -343,8 +345,14 @@ public class NatixisHttpClient {
         return NatixisPaymentInitResponse.fromStringResponse( response );
     }
 
-    // TODO: javadoc
-    public StringResponse paymentStatus( String paymentId, RequestConfiguration requestConfiguration ){
+    /**
+     * Retrieve the status of an ongoing payment request.
+     *
+     * @param paymentId payment unique identifier
+     * @param requestConfiguration the request configuration
+     * @return The payment request data
+     */
+    public Payment paymentStatus( String paymentId, RequestConfiguration requestConfiguration ){
         String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL);
         if( baseUrl == null ){
             throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
@@ -393,9 +401,8 @@ public class NatixisHttpClient {
             throw handleErrorResponse( response );
         }
 
-        // TODO: parse the content and return an object
-
-        return response;
+        // Handle status
+        return handleStatusResponse( response );
     }
 
     /**
@@ -493,6 +500,23 @@ public class NatixisHttpClient {
         }
         return new PluginException(message, FailureCause.PARTNER_UNKNOWN_ERROR);
         // TODO: change the FailureCause if we get a list of possible error cases and we map each of them on FailureCauses
+    }
+
+    /**
+     * Handle status responses with the specified format (see API specification).
+     *
+     * @param response The response received, converted as {@link StringResponse}
+     * @return The response content converted as a {@link Payment}
+     */
+    Payment handleStatusResponse( StringResponse response ){
+        try {
+            JsonObject paymentRequest = new JsonParser().parse(response.getContent()).getAsJsonObject()
+                    .getAsJsonObject("paymentRequest");
+            return Payment.fromJson( paymentRequest.toString() );
+        }
+        catch( RuntimeException e ){
+            throw new PluginException("Plugin error: unable to parse status response", e);
+        }
     }
 
     /**

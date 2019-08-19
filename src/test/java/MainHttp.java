@@ -1,3 +1,4 @@
+import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
@@ -33,8 +34,10 @@ public class MainHttp {
 
         try {
             natixisHttpClient.init( partnerConfiguration );
-            natixisHttpClient.paymentInit( initPayment(), MockUtils.aPsuInformation(), requestConfiguration );
-            //natixisHttpClient.paymentStatus("0000000556-156352853200013807958897", requestConfiguration);
+            //NatixisPaymentInitResponse paymentInit = natixisHttpClient.paymentInit( initPayment(), MockUtils.aPsuInformation(), requestConfiguration );
+            //natixisHttpClient.paymentStatus(paymentInit.getPaymentId(), requestConfiguration);
+            Payment payment = natixisHttpClient.paymentStatus("0000000651-156622395800013135819352", requestConfiguration);
+            payment.getChargeBearer();
         } catch( Exception e ){
             e.printStackTrace();
         }
