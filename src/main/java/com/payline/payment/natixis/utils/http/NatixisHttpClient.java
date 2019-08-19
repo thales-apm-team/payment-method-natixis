@@ -2,6 +2,7 @@ package com.payline.payment.natixis.utils.http;
 
 import com.google.gson.JsonSyntaxException;
 import com.payline.payment.natixis.bean.business.NatixisErrorResponse;
+import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.authorization.JwtUserBody;
 import com.payline.payment.natixis.bean.business.authorization.NatixisAuthorizationResponse;
 import com.payline.payment.natixis.bean.business.authorization.RFC6749AccessTokenErrorResponse;
@@ -13,6 +14,7 @@ import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.properties.ConfigProperties;
+import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
@@ -33,7 +35,6 @@ import org.tomitribe.auth.signatures.Algorithm;
 import org.tomitribe.auth.signatures.Base64;
 import org.tomitribe.auth.signatures.Signature;
 import org.tomitribe.auth.signatures.Signer;
-import com.payline.payment.natixis.utils.security.RSAHolder;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
@@ -253,7 +254,7 @@ public class NatixisHttpClient {
      * @param requestBody the payment initiation request body
      * @param requestConfiguration the request configuration
      */
-    public StringResponse paymentInit(Payment requestBody, PsuInformation psuInformation, RequestConfiguration requestConfiguration ){
+    public NatixisPaymentInitResponse paymentInit(Payment requestBody, PsuInformation psuInformation, RequestConfiguration requestConfiguration ){
         String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL);
         if( baseUrl == null ){
             throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
@@ -339,9 +340,7 @@ public class NatixisHttpClient {
             throw handleErrorResponse( response );
         }
 
-        // TODO: parse the content and return an object
-
-        return response;
+        return NatixisPaymentInitResponse.fromStringResponse( response );
     }
 
     // TODO: javadoc
