@@ -1,3 +1,5 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
 plugins {
     id "com.github.johnrengelman.shadow" version "2.0.1"
     id "org.sonarqube" version "2.6.1"
@@ -55,6 +57,16 @@ jar {
                 'Source-Compatibility': project.sourceCompatibility,
                 'Target-Compatibility': project.targetCompatibility
         )
+    }
+}
+
+processResources {
+    // Replace tokens in release.properties file by their real value
+    filesMatching('release.properties') {
+        filter(ReplaceTokens, tokens: [
+                'version': project.version.replaceFirst("-.*", ""),
+                'date'   : new Date().format("dd/MM/yyyy")
+        ])
     }
 }
 
