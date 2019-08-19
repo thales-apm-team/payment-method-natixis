@@ -263,7 +263,7 @@ public class Payment {
     public String toString() {
         Gson gson = new GsonBuilder()
                 .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
-                //.disableHtmlEscaping() // TODO: uncomment or remove !
+                .disableHtmlEscaping()
                 .create();
         return gson.toJson( this );
     }
