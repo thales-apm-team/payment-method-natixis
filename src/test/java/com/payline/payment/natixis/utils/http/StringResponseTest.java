@@ -24,6 +24,7 @@ class StringResponseTest {
         assertEquals( "OK", stringResponse.getStatusMessage() );
         assertEquals( "some content", stringResponse.getContent() );
         assertEquals( 1, stringResponse.getHeaders().size() );
+        assertEquals( "Value", stringResponse.getHeader("name") );
     }
 
     @Test
