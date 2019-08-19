@@ -85,7 +85,6 @@ public class MockUtils {
                         .withCategoryPurpose("DVPM")
                         .withLocalInstrument("INST")
                         .build() )
-                /*
                 .withDebtor( new PartyIdentification.PartyIdentificationBuilder()
                         .withName("Jean Dupont")
                         .withPostalAddress( new PostalAddress.PostalAddressBuilder()
@@ -101,10 +100,8 @@ public class MockUtils {
                                 .build()
                         )
                         .build() )
-                */
-                .withDebtorAgent( new FinancialInstitutionIdentification( "CMBRFR2BARK" ) )
+                .withDebtorAgent( new FinancialInstitutionIdentification( "CEPAFRPP313" ) )
                 .withBeneficiary( new Beneficiary.BeneficiaryBuilder()
-                        /*
                         .withCreditor( new PartyIdentification.PartyIdentificationBuilder()
                                 .withName("Marie Durand")
                                 .withPostalAddress( new PostalAddress.PostalAddressBuilder()
@@ -115,7 +112,6 @@ public class MockUtils {
                                 )
                                 .build()
                         )
-                        */
                         .withCreditorAccount( new AccountIdentification.AccountIdentificationBuilder()
                                 .withIban("FR7613807000343142150215863")
                                 .build()
