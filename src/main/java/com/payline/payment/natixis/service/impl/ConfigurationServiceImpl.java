@@ -1,5 +1,6 @@
 package com.payline.payment.natixis.service.impl;
 
+import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.payment.natixis.utils.properties.ReleaseProperties;
 import com.payline.pmapi.bean.configuration.ReleaseInformation;
 import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
@@ -20,6 +21,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     private static final Logger LOGGER = LogManager.getLogger(ConfigurationServiceImpl.class);
 
     private ReleaseProperties releaseProperties = ReleaseProperties.getInstance();
+    private I18nService i18n = I18nService.getInstance();
 
     @Override
     public List<AbstractParameter> getParameters(Locale locale) {
@@ -46,7 +48,6 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Override
     public String getName(Locale locale) {
-        // TODO
-        return null;
+        return i18n.getMessage("paymentMethod.name", locale);
     }
 }
