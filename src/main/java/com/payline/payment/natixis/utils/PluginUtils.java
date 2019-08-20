@@ -6,11 +6,25 @@ import org.apache.http.client.methods.HttpRequestBase;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class PluginUtils {
 
     /* Static utility class : no need to instantiate it (Sonar bug fix) */
     private PluginUtils(){}
+
+    /**
+     * Put an entry into the given map only if the given key and value are not null.
+     *
+     * @param map The map
+     * @param key The wanted key for the new entry
+     * @param value The wanted value for the new entry
+     */
+    public static void safePut(Map<String, String> map, String key, String value ){
+        if( key != null && value != null ){
+            map.put( key, value );
+        }
+    }
 
     /**
      * Convert the path and headers of a {@link HttpRequestBase} to a readable {@link String}.

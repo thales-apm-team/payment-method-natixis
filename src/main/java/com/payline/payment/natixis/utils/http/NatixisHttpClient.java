@@ -65,6 +65,7 @@ public class NatixisHttpClient {
     private static final String API_PAYMENT_PATH_STATUS = "/payment-requests/" + API_PAYMENT_PATH_STATUS_TOKEN;
 
     private static final String HTTP_HEADER_X_REQUEST_ID = "X-Request-ID";
+    private static final String PSUDATE_HEADER_FORMAT = "yyyyMMddHHmmss";
 
     private static final Algorithm SIGNATURE_ALGORITHM = Algorithm.RSA_SHA256;
 
@@ -164,10 +165,10 @@ public class NatixisHttpClient {
      *
      * @param requestConfiguration the request configuration
      */
-    public void authorize( RequestConfiguration requestConfiguration ){
-        if( isAuthorized() ){
+    protected Authorization authorize( RequestConfiguration requestConfiguration ){
+        if( this.isAuthorized() ){
             LOGGER.info("Client already contains a valid authorization");
-            return;
+            return this.authorization;
         }
 
         String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL);
@@ -208,7 +209,7 @@ public class NatixisHttpClient {
 
         // Handle potential error
         if( response.getStatusCode() != HttpStatus.SC_OK ){
-            throw handleAuthorizationErrorResponse( response );
+            throw this.handleAuthorizationErrorResponse( response );
         }
 
         // Build authorization from response content
@@ -244,6 +245,7 @@ public class NatixisHttpClient {
             authBuilder.withExpiresAt( expiresAt );
 
             this.authorization = authBuilder.build();
+            return this.authorization;
         }
         catch(JsonSyntaxException | IllegalStateException e){
             throw new PluginException("Failed to parse authorization response", FailureCause.COMMUNICATION_ERROR, e);
@@ -263,7 +265,7 @@ public class NatixisHttpClient {
         }
 
         // Authorization
-        this.authorize( requestConfiguration );
+        Authorization auth = this.authorize( requestConfiguration );
 
         // Init request
         URI uri;
@@ -281,57 +283,24 @@ public class NatixisHttpClient {
 
         // Headers
         Map<String, String> headers = new HashMap<>();
-        headers.put(HttpHeaders.AUTHORIZATION, this.authorization.getHeaderValue());
+        headers.put(HttpHeaders.AUTHORIZATION, auth.getHeaderValue());
         headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
         headers.put(HTTP_HEADER_X_REQUEST_ID, UUID.randomUUID().toString());
 
         // PSU information headers
-        putIfNotNull(headers, "PSUAddress", psuInformation.getIpAddress() );
-        putIfNotNull(headers, "PSUPort", psuInformation.getIpPort().toString() );
-        putIfNotNull(headers, "PSUHTTPMethod", psuInformation.getHttpMethod() );
-        if( psuInformation.getLastLogin() != null ){
-            headers.put("PSUDate", new SimpleDateFormat("yyyyMMddHHmmss").format( psuInformation.getLastLogin() ));
-        }
-        putIfNotNull(headers, "PSUUserAgent", psuInformation.getHeaderUserAgent() );
-        putIfNotNull(headers, "PSUReferer", psuInformation.getHeaderReferer() );
-        putIfNotNull(headers, "PSUAccept", psuInformation.getHeaderAccept() );
-        putIfNotNull(headers, "PSUAcceptCharset", psuInformation.getHeaderAcceptCharset() );
-        putIfNotNull(headers, "PSUAcceptEncoding", psuInformation.getHeaderAcceptEncoding() );
-        putIfNotNull(headers, "PSUAcceptLanguage", psuInformation.getHeaderAcceptLanguage() );
-        putIfNotNull(headers, "PsuGeoLocation", psuInformation.getGeoLocation() );
-        putIfNotNull(headers, "PSU-Device-ID", psuInformation.getDeviceId() );
+        headers.putAll( this.psuHeaders(psuInformation) );
 
         // Digest header
-        String digestBody = jsonBody.replaceAll("[\\n\\r]+[ ]*", "")
-                .replace(": ", ":")
-                .replace(", ", ",");
-        byte[] digest;
-        try {
-            digest = MessageDigest.getInstance("SHA-256").digest( digestBody.getBytes() );
-        } catch (NoSuchAlgorithmException e) {
-            // This should not happen, as "SHA-256" has been tested as a valid algorithm
-            throw new PluginException("Plugin error: no such digest algorithm", e);
-        }
-        String digestHeader = "SHA-256=" + new String(Base64.encodeBase64(digest));
-        headers.put("Digest", digestHeader);
+        headers.put("Digest", this.sha256DigestHeader( jsonBody ));
 
         // Add headers to the request
         for (Map.Entry<String, String> h : headers.entrySet()) {
             httpPost.setHeader(h.getKey(), h.getValue());
         }
 
-        // Retrieve private key
-        Key privateKey = getPrivateKey();
-
         // Signature
         String keyId = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID);
-        Signature signature = new Signature(keyId, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID, "Digest");
-        Signer signer = new Signer(privateKey, signature);
-        try {
-            signature = signer.sign(httpPost.getMethod(), uri.getPath(), headers);
-        } catch (IOException e) {
-            throw new PluginException("Plugin error: while signing the request", e);
-        }
+        Signature signature = this.generateSignature( httpPost, headers, keyId, "(request-target)", HTTP_HEADER_X_REQUEST_ID, "Digest" );
         httpPost.setHeader("Signature", signature.toString());
 
         // Execute request
@@ -339,7 +308,7 @@ public class NatixisHttpClient {
 
         // Handle potential error
         if( response.getStatusCode() != HttpStatus.SC_CREATED ){
-            throw handleErrorResponse( response );
+            throw this.handleErrorResponse( response );
         }
 
         return NatixisPaymentInitResponse.fromStringResponse( response );
@@ -359,7 +328,7 @@ public class NatixisHttpClient {
         }
 
         // Authorization
-        this.authorize( requestConfiguration );
+        Authorization auth = this.authorize( requestConfiguration );
 
         // Init request
         URI uri;
@@ -373,36 +342,27 @@ public class NatixisHttpClient {
 
         // Headers
         Map<String, String> headers = new HashMap<>();
-        headers.put(HttpHeaders.AUTHORIZATION, this.authorization.getHeaderValue());
+        headers.put(HttpHeaders.AUTHORIZATION, auth.getHeaderValue());
         headers.put(HTTP_HEADER_X_REQUEST_ID, UUID.randomUUID().toString());
         for (Map.Entry<String, String> h : headers.entrySet()) {
             httpGet.setHeader(h.getKey(), h.getValue());
         }
 
-        // Retrieve private key
-        Key privateKey = getPrivateKey();
-
         // Signature
         String keyId = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID);
-        Signature signature = new Signature(keyId, SIGNATURE_ALGORITHM, null, "(request-target)", HTTP_HEADER_X_REQUEST_ID);
-        Signer signer = new Signer(privateKey, signature);
-        try {
-            signature = signer.sign(httpGet.getMethod(), uri.getPath(), headers);
-        } catch (IOException e) {
-            throw new PluginException("Plugin error: while signing the request", e);
-        }
-        httpGet.setHeader("Signature", signature.toString());
+        Signature signature = this.generateSignature( httpGet, headers, keyId, "(request-target)", HTTP_HEADER_X_REQUEST_ID );
+        httpGet.setHeader("Signature", signature.toString() );
 
         // Execute request
         StringResponse response = this.execute( httpGet );
 
         // Handle potential error
         if( response.getStatusCode() != HttpStatus.SC_OK ){
-            throw handleErrorResponse( response );
+            throw this.handleErrorResponse( response );
         }
 
         // Handle status
-        return handleStatusResponse( response );
+        return this.handleStatusResponse( response );
     }
 
     /**
@@ -450,6 +410,38 @@ public class NatixisHttpClient {
         }
         LOGGER.info("Response obtained from partner API [{} {}]", strResponse.getStatusCode(), strResponse.getStatusMessage() );
         return strResponse;
+    }
+
+    /**
+     * Generate a signature for the given request, using the private key returned by the {@link RSAHolder} instance.
+     *
+     * @param httpRequest The request to sign
+     * @param requestHeaders The headers of the request to sign
+     * @param keyId The key id to use in the signature process
+     * @param signedHeaders The headers that should be used in the signature
+     * @return The signature, as a string
+     */
+    Signature generateSignature( HttpRequestBase httpRequest, Map<String, String> requestHeaders, String keyId, String... signedHeaders ){
+        // Retrieve private key
+        Key privateKey;
+        try {
+            privateKey = this.rsaHolder.getPrivateKey();
+        } catch (GeneralSecurityException e) {
+            throw new PluginException("Plugin error: while recovering private key", e);
+        }
+
+        // Generate signature
+        Signature signature;
+        try {
+            signature = new Signature(keyId, SIGNATURE_ALGORITHM, null, signedHeaders );
+            Signer signer = new Signer(privateKey, signature);
+            signature = signer.sign( httpRequest.getMethod(), httpRequest.getURI().getPath(), requestHeaders );
+        }
+        catch (IOException | RuntimeException e) {
+            throw new PluginException("Plugin error: while signing the request", e);
+        }
+
+        return signature;
     }
 
     /**
@@ -520,28 +512,55 @@ public class NatixisHttpClient {
     }
 
     /**
-     * Handle the potential errors during the recovering of the private key.
-     * @return the client private key
+     * Build PSU headers from a {@link PsuInformation} instance.
+     *
+     * @param psuInformation The object containing PSU information
+     * @return The PSU-related headers
      */
-    Key getPrivateKey(){
-        try {
-            return this.rsaHolder.getPrivateKey();
-        } catch (GeneralSecurityException e) {
-            throw new PluginException("Plugin error: while recovering private key", e);
+    Map<String, String> psuHeaders( PsuInformation psuInformation ){
+        Map<String, String> psuHeaders = new HashMap<>();
+
+        PluginUtils.safePut(psuHeaders, "PSUAddress", psuInformation.getIpAddress() );
+        if( psuInformation.getIpPort() != null ){
+            psuHeaders.put("PSUPort", psuInformation.getIpPort().toString() );
         }
+        PluginUtils.safePut(psuHeaders, "PSUHTTPMethod", psuInformation.getHttpMethod() );
+        if( psuInformation.getLastLogin() != null ){
+            psuHeaders.put("PSUDate", new SimpleDateFormat(PSUDATE_HEADER_FORMAT).format( psuInformation.getLastLogin() ));
+        }
+        PluginUtils.safePut(psuHeaders, "PSUUserAgent", psuInformation.getHeaderUserAgent() );
+        PluginUtils.safePut(psuHeaders, "PSUReferer", psuInformation.getHeaderReferer() );
+        PluginUtils.safePut(psuHeaders, "PSUAccept", psuInformation.getHeaderAccept() );
+        PluginUtils.safePut(psuHeaders, "PSUAcceptCharset", psuInformation.getHeaderAcceptCharset() );
+        PluginUtils.safePut(psuHeaders, "PSUAcceptEncoding", psuInformation.getHeaderAcceptEncoding() );
+        PluginUtils.safePut(psuHeaders, "PSUAcceptLanguage", psuInformation.getHeaderAcceptLanguage() );
+        PluginUtils.safePut(psuHeaders, "PsuGeoLocation", psuInformation.getGeoLocation() );
+        PluginUtils.safePut(psuHeaders, "PSU-Device-ID", psuInformation.getDeviceId() );
+
+        return psuHeaders;
     }
 
     /**
-     * Put an entry into the given headers map only if the given value is not null.
+     * Remove every space or line break into the given JSON content.
+     * Then digest it using SHA-256 algorithm and return the corresponding HTTP header (SHA-256=digestMessage).
      *
-     * @param headers The headers map
-     * @param key The wanted key for the new header
-     * @param value The wanted value for the new header
+     * @param jsonContent the JSON content to digest
+     * @return the digest header
      */
-    void putIfNotNull( Map<String, String> headers, String key, String value ){
-        if( value != null ){
-            headers.put( key, value );
+    String sha256DigestHeader( String jsonContent ){
+        String digestBody = jsonContent.replaceAll("[\\n\\r]+[ ]*", "")
+                .replace(": ", ":")
+                .replace(", ", ",");
+        byte[] digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256").digest( digestBody.getBytes() );
+        } catch (NoSuchAlgorithmException e) {
+            // This should not happen, as "SHA-256" has been tested as a valid algorithm
+            throw new PluginException("Plugin error: no such digest algorithm", e);
         }
+        return "SHA-256=" + new String(Base64.encodeBase64(digest));
     }
+
+
 
 }

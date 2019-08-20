@@ -1,36 +1,25 @@
 package com.payline.payment.natixis.bean.business;
 
+import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.utils.http.HttpTestUtils;
 import com.payline.payment.natixis.utils.http.StringResponse;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.internal.util.reflection.FieldSetter;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class NatixisPaymentInitResponseTest {
 
-    private static final String PAYMENT_ID = "0000000634-156620939900013135879318";
+    private static final String PAYMENT_ID = MockUtils.aPaymentId();
     private static final String CONSENT_APPROVAL_URL = "https://www.rs-ex-hml-89c3api.qpa.bpce.fr/89C3api/accreditation/v1/identificationPisp?paymentRequestRessourceId="+PAYMENT_ID+"&nonce=E3BNDmkGVP4qtO1FLQZS";
-
-    private String responseContent;
-    private Map<String, String> headers;
-    private StringResponse stringResponse;
-
-    @BeforeEach
-    void setup() throws NoSuchFieldException {
-        stringResponse = new StringResponse();
-        FieldSetter.setField( stringResponse, StringResponse.class.getDeclaredField("statusCode"), HttpStatus.SC_CREATED);
-        FieldSetter.setField( stringResponse, StringResponse.class.getDeclaredField("statusMessage"), "Created");
-    }
 
     /**
      * Test set of valid response elements to a payment initiation.
@@ -62,10 +51,9 @@ public class NatixisPaymentInitResponseTest {
     @MethodSource("fromStringResponse_passing_set")
     void fromStringResponse_passing( String responseContent, String expectedUrl, String locationHeader, String expectedPaymentId ) throws NoSuchFieldException {
         // given: response content and location header
-        FieldSetter.setField( stringResponse, StringResponse.class.getDeclaredField("content"), responseContent);
         Map<String, String> headers = new HashMap<>();
         headers.put("location", locationHeader);
-        FieldSetter.setField( stringResponse, StringResponse.class.getDeclaredField("headers"), headers);
+        StringResponse stringResponse = mockOkStringResponse( responseContent, headers );
 
         // when: building instance from StringResponse
         NatixisPaymentInitResponse instance = NatixisPaymentInitResponse.fromStringResponse( stringResponse );
@@ -118,15 +106,18 @@ public class NatixisPaymentInitResponseTest {
     @MethodSource("fromStringResponse_blocking_set")
     void fromStringResponse_blocking( String responseContent, String locationHeader ) throws NoSuchFieldException {
         // given: response content and location header
-        FieldSetter.setField( stringResponse, StringResponse.class.getDeclaredField("content"), responseContent);
         Map<String, String> headers = new HashMap<>();
         if( locationHeader != null ){
             headers.put("location", locationHeader);
         }
-        FieldSetter.setField( stringResponse, StringResponse.class.getDeclaredField("headers"), headers);
+        StringResponse stringResponse = mockOkStringResponse( responseContent, headers );
 
         // when: building instance from StringResponse, an exception is thrown
         PluginException e = assertThrows(PluginException.class, () -> NatixisPaymentInitResponse.fromStringResponse( stringResponse ) );
+    }
+
+    private StringResponse mockOkStringResponse( String content, Map<String, String> headers ) throws NoSuchFieldException {
+        return HttpTestUtils.mockStringResponse(HttpStatus.SC_CREATED, "Created", content, headers);
     }
 
 }

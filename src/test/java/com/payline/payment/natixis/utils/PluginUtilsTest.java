@@ -3,10 +3,56 @@ package com.payline.payment.natixis.utils;
 import org.apache.http.client.methods.HttpGet;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class PluginUtilsTest {
+
+    @Test
+    void safePut_nominal(){
+        // given: proper key and value
+        Map<String, String> map = new HashMap<>();
+        String key = "thekey";
+        String value = "thevalue";
+
+        // when: calling safePut method
+        PluginUtils.safePut( map, key, value );
+
+        // then: the entry is added to the map
+        assertEquals( 1, map.size() );
+        assertEquals( value, map.get(key) );
+    }
+
+    @Test
+    void safePut_nullKey(){
+        // given: a proper value and a null key
+        Map<String, String> map = new HashMap<>();
+        String key = null;
+        String value = "thevalue";
+
+        // when: calling safePut method
+        PluginUtils.safePut( map, key, value );
+
+        // then: no entry is added to the map
+        assertEquals( 0, map.size() );
+    }
+
+    @Test
+    void safePut_nullValue(){
+        // given: a proper key and a null value
+        Map<String, String> map = new HashMap<>();
+        String key = "thekey";
+        String value = null;
+
+        // when: calling safePut method
+        PluginUtils.safePut( map, key, value );
+
+        // then: no entry is added to the map
+        assertEquals( 0, map.size() );
+    }
 
     @Test
     void requestToString(){

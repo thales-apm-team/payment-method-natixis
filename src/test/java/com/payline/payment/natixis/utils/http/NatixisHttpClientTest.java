@@ -1,8 +1,15 @@
 package com.payline.payment.natixis.utils.http;
 
 import com.payline.payment.natixis.MockUtils;
+import com.payline.payment.natixis.TestUtils;
+import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
+import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
+import com.payline.payment.natixis.bean.business.payment.Payment;
+import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import org.apache.http.HttpStatus;
@@ -15,36 +22,40 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
+import org.mockito.*;
 import org.mockito.internal.util.reflection.FieldSetter;
-import com.payline.payment.natixis.TestUtils;
-import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
-import com.payline.payment.natixis.utils.Constants;
-import com.payline.payment.natixis.utils.security.RSAHolder;
+import org.tomitribe.auth.signatures.Signature;
 
 import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static com.payline.payment.natixis.utils.http.HttpTestUtils.mockHttpResponse;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static com.payline.payment.natixis.utils.http.HttpTestUtils.mockHttpResponse;
 
+/**
+ * Two test instances of {@link NatixisHttpClient} are available in this test class :
+ *
+ *  - natixisHttpClient: is instantiated and injected with mocked attributes.
+ *    Use it to test low level (often package-private) methods or if you need to use reflection.
+ *
+ *  - spiedClient: is created from the previous. You can't use reflection on a spied class.
+ *    But you can spy on method calls and mock their returns to isolate the tested method.
+ */
 class NatixisHttpClientTest {
 
-    @InjectMocks
-    private NatixisHttpClient natixisHttpClient;
+    @InjectMocks private NatixisHttpClient natixisHttpClient;
+    private NatixisHttpClient spiedClient;
 
-    @Mock
-    private CloseableHttpClient client;
-    @Mock
-    private RSAHolder rsaHolder;
+    @Mock private CloseableHttpClient http;
+    @Mock private RSAHolder rsaHolder;
 
     @BeforeEach
     void setup() throws NoSuchFieldException {
@@ -54,12 +65,16 @@ class NatixisHttpClientTest {
 
         // Manual init of private attributes
         FieldSetter.setField( natixisHttpClient, natixisHttpClient.getClass().getDeclaredField("retries"), 3);
+
+        // Init spied client
+        spiedClient = Mockito.spy( natixisHttpClient );
     }
+
+    // --- Test NatixisHttpClient#authorize ---
 
     @Test
     void authorize_alreadyAuthorized(){
         // given: a valid authorization is already stored in the client
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
         doReturn( true ).when( spiedClient ).isAuthorized();
 
         // when: calling the authorize method
@@ -136,13 +151,9 @@ class NatixisHttpClientTest {
 
     @ParameterizedTest
     @MethodSource("authorize_blockingResponseContent_set")
-    void authorize_blockingResponseContent( String responseContent ) throws NoSuchFieldException {
+    void authorize_blockingResponseContent( String responseContent ) {
         // given: the server returns a response with a non-sufficient content
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
-        StringResponse response = new StringResponse();
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("content"), responseContent);
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusCode"), HttpStatus.SC_OK);
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusMessage"), "OK");
+        StringResponse response = HttpTestUtils.mockStringResponse( HttpStatus.SC_OK, "OK", responseContent, null );
         doReturn( response ).when( spiedClient ).execute( any(HttpPost.class) );
 
         // when: calling the authorize method, an exception is thrown
@@ -174,13 +185,9 @@ class NatixisHttpClientTest {
 
     @ParameterizedTest
     @MethodSource("authorize_nonBlockingResponseContent_set")
-    void authorize_nonBlockingResponseContent( String responseContent ) throws NoSuchFieldException {
+    void authorize_nonBlockingResponseContent( String responseContent ) {
         // given: the server returns a response with a sufficient content
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
-        StringResponse response = new StringResponse();
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("content"), responseContent);
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusCode"), HttpStatus.SC_OK);
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusMessage"), "OK");
+        StringResponse response = HttpTestUtils.mockStringResponse( HttpStatus.SC_OK, "OK", responseContent, null );
         doReturn( response ).when( spiedClient ).execute( any(HttpPost.class) );
 
         // when: calling the authorize method
@@ -192,16 +199,10 @@ class NatixisHttpClientTest {
 
 
     @Test
-    void authorize_wrongClientId() throws NoSuchFieldException {
+    void authorize_wrongClientId() {
         // given: the server returns an Internal Server Error
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
-        StringResponse response = new StringResponse();
-        /*
-         * Test case built upon observation of the API responses during development
-         */
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("content"), "grant_type=client_credentials");
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusCode"), HttpStatus.SC_INTERNAL_SERVER_ERROR);
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusMessage"), "Internal Server Error");
+        // Test case built upon observation of the API responses during development
+        StringResponse response = HttpTestUtils.mockStringResponse( HttpStatus.SC_INTERNAL_SERVER_ERROR, "Internal Server Error", "grant_type=client_credentials", null );
         doReturn( response ).when( spiedClient ).execute( any(HttpPost.class) );
 
         // when: calling the authorize method, an exception is thrown
@@ -209,19 +210,18 @@ class NatixisHttpClientTest {
     }
 
     @Test
-    void authorize_wrongClientSecret() throws NoSuchFieldException {
+    void authorize_wrongClientSecret() {
         // given: the server returns an Internal Server Error
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
-        StringResponse response = new StringResponse();
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("content"), "{\n  \"error\" : \"invalid_client\",\n  \"error_description\" : \"Client authentication failed (e.g. unknown client, no client authentication included, or unsupported authentication method).  The authorization server MAY return an HTTP 401 (Unauthorized) status code to indicate which HTTP authentication schemes are supported. \"\n}");
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusCode"), HttpStatus.SC_UNAUTHORIZED);
-        FieldSetter.setField( response, StringResponse.class.getDeclaredField("statusMessage"), "Unauthorized");
+        String content = "{\n  \"error\" : \"invalid_client\",\n  \"error_description\" : \"Client authentication failed (e.g. unknown client, no client authentication included, or unsupported authentication method).  The authorization server MAY return an HTTP 401 (Unauthorized) status code to indicate which HTTP authentication schemes are supported. \"\n}";
+        StringResponse response = HttpTestUtils.mockStringResponse( HttpStatus.SC_UNAUTHORIZED, "Unauthorized", content, null );
         doReturn( response ).when( spiedClient ).execute( any(HttpPost.class) );
 
         // when: calling the authorize method, an exception is thrown
         PluginException e = assertThrows( PluginException.class, () -> spiedClient.authorize( MockUtils.aRequestConfiguration() ) );
         assertTrue( e.getErrorCode().contains("invalid_client") );
     }
+
+    // --- Test NatixisHttpClient#execute ---
 
     @Test
     void execute_nominal() throws IOException {
@@ -231,7 +231,7 @@ class NatixisHttpClientTest {
         String expectedStatusMessage = "OK";
         String expectedContent = "{\"content\":\"fake\"}";
         doReturn( mockHttpResponse( expectedStatusCode, expectedStatusMessage, expectedContent, null ) )
-                .when( client ).execute( request );
+                .when( http ).execute( request );
 
         // when: sending the request
         StringResponse stringResponse = natixisHttpClient.execute( request );
@@ -247,7 +247,7 @@ class NatixisHttpClientTest {
     void execute_retry() throws IOException {
         // given: the first 2 requests end up in timeout, the third request gets a response
         HttpGet request = new HttpGet("http://domain.test.fr/endpoint");
-        when( client.execute( request ) )
+        when( http.execute( request ) )
                 .thenThrow( ConnectTimeoutException.class )
                 .thenThrow( ConnectTimeoutException.class )
                 .thenReturn( mockHttpResponse( 200, "OK", "content", null) );
@@ -263,7 +263,7 @@ class NatixisHttpClientTest {
     void execute_retryFail() throws IOException {
         // given: a request which always gets an exception
         HttpGet request = new HttpGet("http://domain.test.fr/endpoint");
-        doThrow( IOException.class ).when( client ).execute( request );
+        doThrow( IOException.class ).when( http ).execute( request );
 
         // when: sending the request, a PluginException is thrown
         assertThrows( PluginException.class, () -> natixisHttpClient.execute( request ) );
@@ -273,16 +273,100 @@ class NatixisHttpClientTest {
     void execute_invalidResponse() throws IOException {
         // given: a request that gets an invalid response (null)
         HttpGet request = new HttpGet("http://domain.test.fr/malfunctioning-endpoint");
-        doReturn( null ).when( client ).execute( request );
+        doReturn( null ).when( http ).execute( request );
 
         // when: sending the request, a PluginException is thrown
         assertThrows( PluginException.class, () -> natixisHttpClient.execute( request ) );
     }
 
+    // --- Test NatixisHttpClient#generateSignature ---
+
+    @Test
+    void generateSignature_nominal() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+        // given: valid inputs and rsaHolder returns a key
+        HttpPost httpRequest = new HttpPost( "http://test.domain.com/some/path" );
+        Map<String, String> headers = new HashMap<>();
+        headers.put("SomeHeader", "header_value");
+        String keyId = "a-key-id";
+        doReturn( MockUtils.aPrivateKey() ).when( rsaHolder ).getPrivateKey();
+
+        // when: generating the signature
+        Signature signature = natixisHttpClient.generateSignature( httpRequest, headers, keyId, "(request-target)", "SomeHeader" );
+
+        // then: the generated signature seems valid
+        assertNotNull( signature );
+        assertTrue( signature.toString().contains( keyId ) );
+    }
+
+    @Test
+    void generateSignature_publicKey() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+        // given: valid inputs, but rsaHolder returns a public key instead of a private key
+        HttpPost httpRequest = new HttpPost( "http://test.domain.com/some/path" );
+        Map<String, String> headers = new HashMap<>();
+        headers.put("SomeHeader", "header_value");
+        String keyId = "a-key-id";
+        doReturn( MockUtils.aPublicKey() ).when( rsaHolder ).getPrivateKey();
+
+        // when: generating the signature, then: a PluginException is thrown
+        assertThrows( PluginException.class, () ->  natixisHttpClient.generateSignature( httpRequest, headers, keyId, "(request-target)", "SomeHeader" ) );
+    }
+
+    @Test
+    void generateSignature_nullKey() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+        // given: valid inputs, but rsaHolder returns null instead of a key
+        HttpPost httpRequest = new HttpPost( "http://test.domain.com/some/path" );
+        Map<String, String> headers = new HashMap<>();
+        headers.put("SomeHeader", "header_value");
+        String keyId = "a-key-id";
+        doReturn( null ).when( rsaHolder ).getPrivateKey();
+
+        // when: generating the signature, then: a PluginException is thrown
+        assertThrows( PluginException.class, () ->  natixisHttpClient.generateSignature( httpRequest, headers, keyId, "(request-target)", "SomeHeader" ) );
+    }
+
+    @Test
+    void generateSignature_rsaHolderException() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+        // given: valid inputs, but rsaHolder throws an exception (key not recoverable, for example)
+        HttpPost httpRequest = new HttpPost( "http://test.domain.com/some/path" );
+        Map<String, String> headers = new HashMap<>();
+        headers.put("SomeHeader", "header_value");
+        String keyId = "a-key-id";
+        doThrow( UnrecoverableKeyException.class ).when( rsaHolder ).getPrivateKey();
+
+        // when: generating the signature, then: a PluginException is thrown
+        assertThrows( PluginException.class, () ->  natixisHttpClient.generateSignature( httpRequest, headers, keyId, "(request-target)", "SomeHeader" ) );
+    }
+
+    @Test
+    void generateSignature_nullKeyId() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+        // given: rsaHolder returns a valid private key, but keyId is null
+        HttpPost httpRequest = new HttpPost( "http://test.domain.com/some/path" );
+        Map<String, String> headers = new HashMap<>();
+        headers.put("SomeHeader", "header_value");
+        doReturn( MockUtils.aPrivateKey() ).when( rsaHolder ).getPrivateKey();
+
+        // when: generating the signature, then: a PluginException is thrown
+        assertThrows( PluginException.class, () ->  natixisHttpClient.generateSignature( httpRequest, headers, null, "(request-target)", "SomeHeader" ) );
+    }
+
+    @Test
+    void generateSignature_missingHeader() throws UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException {
+        // given: rsaHolder returns a valid private key, but one header used to sign is missing from the request headers
+        HttpPost httpRequest = new HttpPost( "http://test.domain.com/some/path" );
+        Map<String, String> headers = new HashMap<>();
+        String keyId = "a-key-id";
+        doReturn( MockUtils.aPrivateKey() ).when( rsaHolder ).getPrivateKey();
+
+        // when: generating the signature, then: a PluginException is thrown
+        assertThrows( PluginException.class, () ->  natixisHttpClient.generateSignature( httpRequest, headers, keyId, "(request-target)", "SomeHeader" ) );
+    }
+
+    // --- Test NatixisHttpClient#isAuthorized ---
+
     @Test
     void isAuthorized_valid() throws NoSuchFieldException {
         // given: a valid authorization
-        Authorization validAuth = MockUtils.anAuthorizationBuilder().build();
+        Authorization validAuth = MockUtils.anAuthorization();
         FieldSetter.setField( natixisHttpClient, natixisHttpClient.getClass().getDeclaredField("authorization"), validAuth);
 
         // when called, isAuthorized method returns true
@@ -310,7 +394,33 @@ class NatixisHttpClientTest {
         assertFalse( natixisHttpClient.isAuthorized() );
     }
 
-    // TODO: test handleErrorResponse()
+    // --- Test NatixisHttpClient#handleErrorResponse ---
+
+    // TODO
+
+    // --- Test NatixisHttpClient#paymentInit ---
+
+    @Test
+    void paymentInit_nominal() {
+        // given: the client is authorized, the method inputs are correct, the partner API returns a valid response
+        // mock authorize()
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        // mock generateSignature()
+        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
+        // mock execute()
+        String responseContent = "{\"appliedAuthenticationApproach\":\"REDIRECT\",\"_links\":{\"consentApproval\":{\"href\":\"https://www.rs-ex-hml-89c3api.qpa.bpce.fr/89C3api/accreditation/v1/identificationPisp?paymentRequestRessourceId="+MockUtils.aPaymentId()+"&nonce=E3BNDmkGVP4qtO1FLQZS\",\"templated\":true}}}";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("location", "payment-requests/" + MockUtils.aPaymentId());
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_CREATED, "Created", responseContent, headers );
+        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpPost.class) );
+
+        // when: calling the paymentInit method
+        NatixisPaymentInitResponse response = spiedClient.paymentInit( MockUtils.aPayment(), MockUtils.aPsuInformation(), MockUtils.aRequestConfiguration() );
+
+        // then:
+        assertNotNull( response.getPaymentId() );
+        assertNotNull( response.getContentApprovalUrl() );
+    }
 
     @Test
     void paymentInit_missingApiUrl(){
@@ -324,8 +434,7 @@ class NatixisHttpClientTest {
     @Test
     void paymentInit_invalidApiUrl(){
         // given: the client is authorized and the API base URL from the partner configuration in invalid
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
-        doReturn( true ).when( spiedClient ).isAuthorized();
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
 
         Map<String, String> partnerConfigurationMap = new HashMap<>();
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https:||np.api.qua.natixis.com/hub-pisp/v1");
@@ -335,7 +444,48 @@ class NatixisHttpClientTest {
         assertThrows(InvalidDataException.class, () -> spiedClient.paymentInit( MockUtils.aPayment(), MockUtils.aPsuInformation(), requestConfiguration ));
     }
 
-    // TODO: complete tests when paymentInit method will return something
+    @Test
+    void paymentInit_error() {
+        // given: the client is authorized, the method inputs are correct, but the partner API returns an error
+        // mock authorize()
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        // mock generateSignature()
+        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
+        // mock execute()
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_BAD_REQUEST, "Bad Request", "{\"message\":\"The object beneficiary.creditorAccount must not be null.\"}", null );
+        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpPost.class) );
+
+        // when: calling the paymentInit method, then: an exception is thrown
+        assertThrows( PluginException.class, () -> spiedClient.paymentInit( MockUtils.aPayment(), MockUtils.aPsuInformation(), MockUtils.aRequestConfiguration() ) );
+    }
+
+    // --- Test NatixisHttpClient#paymentStatus ---
+
+    @Test
+    void paymentStatus_nominal(){
+        String paymentId = MockUtils.aPaymentId();
+
+        // given: the client is authorized, the method inputs are correct, the partner API returns a valid response
+        // mock authorize()
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        // mock generateSignature()
+        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
+        // mock execute()
+        String responseContent = "{\"paymentRequest\":" +
+                MockUtils.aPaymentBuilder()
+                        .withResourceId( paymentId )
+                        .build() +
+                "}";
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_OK, "OK", responseContent, null );
+        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpGet.class) );
+
+        // when: calling the paymentStatus method
+        Payment status = spiedClient.paymentStatus( paymentId, MockUtils.aRequestConfiguration() );
+
+        // then:
+        assertNotNull( status );
+        assertEquals( paymentId, status.getResourceId() );
+    }
 
     @Test
     void paymentStatus_missingApiUrl(){
@@ -349,8 +499,7 @@ class NatixisHttpClientTest {
     @Test
     void paymentStatus_invalidApiUrl(){
         // given: the client is authorized and the API base URL from the partner configuration in invalid
-        NatixisHttpClient spiedClient = Mockito.spy( natixisHttpClient );
-        doReturn( true ).when( spiedClient ).isAuthorized();
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
 
         Map<String, String> partnerConfigurationMap = new HashMap<>();
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https:||np.api.qua.natixis.com/hub-pisp/v1");
@@ -360,6 +509,48 @@ class NatixisHttpClientTest {
         assertThrows(InvalidDataException.class, () -> spiedClient.paymentStatus( "1234567890", requestConfiguration ));
     }
 
-    // TODO: complete tests when paymentStatus method will return something
+    @Test
+    void paymentStatus_error(){
+        // given: the client is authorized, the method inputs seem correct, but the partner API returns an error
+        // mock authorize()
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        // mock generateSignature()
+        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
+        // mock execute()
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_NOT_FOUND, "Not Found", "{\"code\":\"404\",\"message\":\"Paiement recherché inexistant\"}", null);
+        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpPost.class) );
+
+        // when: calling the paymentStatus method, then: an exception is thrown
+        assertThrows( PluginException.class, () -> spiedClient.paymentStatus( "1234567890", MockUtils.aRequestConfiguration() ) );
+    }
+
+    // --- Test NatixisHttpClient#psuHeaders ---
+
+    @Test
+    void psuHeaders_full(){
+        // given: a full PsuInformation object
+        PsuInformation psuInformation = MockUtils.aPsuInformation();
+
+        // when: calling psuHeaders method
+        Map<String, String> headers = natixisHttpClient.psuHeaders( psuInformation );
+
+        // then: one header is added for each attribute
+        assertEquals( 12, headers.size() );
+    }
+
+    @Test
+    void psuHeaders_partial(){
+        // given: a partial PsuInformation object
+        PsuInformation psuInformation = new PsuInformation.PsuInformationBuilder()
+                .withIpAddress( "192.168.0.0" )
+                .withHeaderUserAgent( "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0" )
+                .build();
+
+        // when: calling psuHeaders method
+        Map<String, String> headers = natixisHttpClient.psuHeaders( psuInformation );
+
+        // then: one header per non-null attribute
+        assertEquals( 2, headers.size() );
+    }
 
 }

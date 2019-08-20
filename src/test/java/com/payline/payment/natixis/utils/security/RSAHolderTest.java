@@ -48,7 +48,7 @@ class RSAHolderTest {
     }
 
     @Test
-    void builder_multipleCertChain() throws CertificateException, InvalidKeySpecException, NoSuchAlgorithmException, IOException, KeyStoreException, UnrecoverableKeyException {
+    void builder_multipleCertChain() throws CertificateException, InvalidKeySpecException, NoSuchAlgorithmException, IOException, KeyStoreException {
         // given: a valid chain containing two certificates and private key
         String chain = pemCertificate + System.lineSeparator() + pemCertificate;
         String pk = pemPk;

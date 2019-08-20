@@ -5,11 +5,19 @@ import com.payline.payment.natixis.bean.business.payment.*;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.http.Authorization;
+import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.bean.payment.Environment;
+import org.tomitribe.auth.signatures.Algorithm;
+import org.tomitribe.auth.signatures.Signature;
+import org.tomitribe.auth.signatures.Signer;
 
+import java.security.KeyFactory;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -20,12 +28,50 @@ import static com.payline.payment.natixis.TestUtils.addTime;
  */
 public class MockUtils {
 
+    /**
+     * Generate a valid {@link Authorization}.
+     */
+    public static Authorization anAuthorization(){
+        return anAuthorizationBuilder().build();
+    }
 
+    /**
+     * Generate a builder for a valid {@link Authorization}.
+     * This way, some attributes may be overridden to match specific test needs.
+     */
     public static Authorization.AuthorizationBuilder anAuthorizationBuilder(){
         return new Authorization.AuthorizationBuilder()
                 .withAccessToken("ABCD1234567890")
                 .withTokenType("Bearer")
                 .withExpiresAt( addTime(new Date(), Calendar.HOUR, 1) );
+    }
+
+    /**
+     * @return A fake client certificate in PEM format.
+     */
+    public static String aClientCertificatePem(){
+        return "-----BEGIN CERTIFICATE-----\n" +
+                "MIIDsTCCApmgAwIBAgIEK96RSTANBgkqhkiG9w0BAQsFADCBiDELMAkGA1UEBhMC\n" +
+                "RlIxDzANBgNVBAgTBkZyYW5jZTEYMBYGA1UEBxMPQWl4LWVuLVByb3ZlbmNlMRgw\n" +
+                "FgYDVQQKEw9UaGFsZXMgU2VydmljZXMxGDAWBgNVBAsTD01vbmV4dCBBUE0gVGVh\n" +
+                "bTEaMBgGA1UEAxMRU2ViYXN0aWVuIFBsYW5hcmQwHhcNMTkwODA2MDk0NjU2WhcN\n" +
+                "MjAwODA1MDk0NjU2WjCBiDELMAkGA1UEBhMCRlIxDzANBgNVBAgTBkZyYW5jZTEY\n" +
+                "MBYGA1UEBxMPQWl4LWVuLVByb3ZlbmNlMRgwFgYDVQQKEw9UaGFsZXMgU2Vydmlj\n" +
+                "ZXMxGDAWBgNVBAsTD01vbmV4dCBBUE0gVGVhbTEaMBgGA1UEAxMRU2ViYXN0aWVu\n" +
+                "IFBsYW5hcmQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5V6x4Ljhr\n" +
+                "riUEj171bPjAd38F/WC/Qdw9FvpiqpoJ1p85qncqFmDd5nYaWW1rnGjoLu0apzD0\n" +
+                "PLvAK8cbAMDn+PKA0vjkabndQrUp0vDNyYvTuCg4DLFdO/XfZP2IsTSACgctNp//\n" +
+                "G/IKH5nWE9w04g9d4oOT0klB4FC8XQd7ceWQOaaDbGqetzWv1neuVqv++tnsNtS0\n" +
+                "vYdIIgkh+acLxVTyliSOQNeOrCI4ZGt9RClJgcmah5JZ1VbaQjisAIv8a//PhgbO\n" +
+                "ULKT7B8Ol6R1DQHh8MGT+1Aju6KVTQXra1cVELIu25sBGnIeoAZ1YF0T0eZbiXLc\n" +
+                "Qvs1lUbb1FlfAgMBAAGjITAfMB0GA1UdDgQWBBSQ/k9OCF9bw8UiVmjkZSqTiVaG\n" +
+                "9zANBgkqhkiG9w0BAQsFAAOCAQEAFdrUHZZksNehc4N2pFrnnnq6KjbVC1BeQaPj\n" +
+                "uSOS2r8AyOmBp121s5XUgDw+SN3JqHd9XMJceAvTsrstyL+JFUtibShP1eXNKoEB\n" +
+                "bXqMUmP5d1qSa8vmLgb/sYPNKRwT0cxlrMYOpQGtO1FRjIJrthTPJ4B2mExZxZWe\n" +
+                "f21DIzhFzqqaR3aullpcQt8i5xFYlhJUtlcAPQPjPCUqQ8GOOGyWnYWwMp62CsZD\n" +
+                "tF5HZMno+ctxHXcGjLjFSgr5+/pN5X5aAaI+lVxajwFGGlMUN+9l9wQN/KL6kGq8\n" +
+                "EoLe9DHIFvmhXi80iUBauD7NgdoyyjKeT+jogEm4LeJgM3islA==\n" +
+                "-----END CERTIFICATE-----";
     }
 
     /**
@@ -60,6 +106,14 @@ public class MockUtils {
      * Generate a valid {@link Payment}
      */
     public static Payment aPayment(){
+        return aPaymentBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link Payment}.
+     * This way, some attributes may be overridden to match specific needs.
+     */
+    public static Payment.PaymentBuilder aPaymentBuilder(){
         SimpleDateFormat timestampDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         String uid = "MONEXT" +  timestampDateFormat.format(new Date());
 
@@ -136,8 +190,14 @@ public class MockUtils {
                         .withSuccessfulReportUrl("https://www.successful.fr")
                         .withUnsuccessfulReportUrl("https://www.unsuccessful.fr")
                         .build()
-                )
-                .build();
+                );
+    }
+
+    /**
+     * @return a valid payment ID
+     */
+    public static String aPaymentId(){
+        return "0000000634-156620939900013135879318";
     }
 
     /**
@@ -150,33 +210,29 @@ public class MockUtils {
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
 
         Map<String, String> sensitiveConfigurationMap = new HashMap<>();
-        // This PEM certificate is fake
-        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE,
-                "-----BEGIN CERTIFICATE-----\n" +
-                "MIIDsTCCApmgAwIBAgIEK96RSTANBgkqhkiG9w0BAQsFADCBiDELMAkGA1UEBhMC\n" +
-                "RlIxDzANBgNVBAgTBkZyYW5jZTEYMBYGA1UEBxMPQWl4LWVuLVByb3ZlbmNlMRgw\n" +
-                "FgYDVQQKEw9UaGFsZXMgU2VydmljZXMxGDAWBgNVBAsTD01vbmV4dCBBUE0gVGVh\n" +
-                "bTEaMBgGA1UEAxMRU2ViYXN0aWVuIFBsYW5hcmQwHhcNMTkwODA2MDk0NjU2WhcN\n" +
-                "MjAwODA1MDk0NjU2WjCBiDELMAkGA1UEBhMCRlIxDzANBgNVBAgTBkZyYW5jZTEY\n" +
-                "MBYGA1UEBxMPQWl4LWVuLVByb3ZlbmNlMRgwFgYDVQQKEw9UaGFsZXMgU2Vydmlj\n" +
-                "ZXMxGDAWBgNVBAsTD01vbmV4dCBBUE0gVGVhbTEaMBgGA1UEAxMRU2ViYXN0aWVu\n" +
-                "IFBsYW5hcmQwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC5V6x4Ljhr\n" +
-                "riUEj171bPjAd38F/WC/Qdw9FvpiqpoJ1p85qncqFmDd5nYaWW1rnGjoLu0apzD0\n" +
-                "PLvAK8cbAMDn+PKA0vjkabndQrUp0vDNyYvTuCg4DLFdO/XfZP2IsTSACgctNp//\n" +
-                "G/IKH5nWE9w04g9d4oOT0klB4FC8XQd7ceWQOaaDbGqetzWv1neuVqv++tnsNtS0\n" +
-                "vYdIIgkh+acLxVTyliSOQNeOrCI4ZGt9RClJgcmah5JZ1VbaQjisAIv8a//PhgbO\n" +
-                "ULKT7B8Ol6R1DQHh8MGT+1Aju6KVTQXra1cVELIu25sBGnIeoAZ1YF0T0eZbiXLc\n" +
-                "Qvs1lUbb1FlfAgMBAAGjITAfMB0GA1UdDgQWBBSQ/k9OCF9bw8UiVmjkZSqTiVaG\n" +
-                "9zANBgkqhkiG9w0BAQsFAAOCAQEAFdrUHZZksNehc4N2pFrnnnq6KjbVC1BeQaPj\n" +
-                "uSOS2r8AyOmBp121s5XUgDw+SN3JqHd9XMJceAvTsrstyL+JFUtibShP1eXNKoEB\n" +
-                "bXqMUmP5d1qSa8vmLgb/sYPNKRwT0cxlrMYOpQGtO1FRjIJrthTPJ4B2mExZxZWe\n" +
-                "f21DIzhFzqqaR3aullpcQt8i5xFYlhJUtlcAPQPjPCUqQ8GOOGyWnYWwMp62CsZD\n" +
-                "tF5HZMno+ctxHXcGjLjFSgr5+/pN5X5aAaI+lVxajwFGGlMUN+9l9wQN/KL6kGq8\n" +
-                "EoLe9DHIFvmhXi80iUBauD7NgdoyyjKeT+jogEm4LeJgM3islA==\n" +
-                "-----END CERTIFICATE-----" );
-        // This PEM private key is fake
-        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY,
-                "-----BEGIN PRIVATE KEY-----\n" +
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, aClientCertificatePem() );
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY, aPrivateKeyPem() );
+
+        return new PartnerConfiguration( partnerConfigurationMap, sensitiveConfigurationMap );
+    }
+
+    /**
+     * @return A fake private key, for test purpose.
+     */
+    public static PrivateKey aPrivateKey(){
+        try {
+            return (PrivateKey) anRsaHolder().getPrivateKey();
+        } catch (Exception e) {
+            // this is testing context: ignore the exception
+            return null;
+        }
+    }
+
+    /**
+     * @return A fake private key in PEM format.
+     */
+    public static String aPrivateKeyPem(){
+        return "-----BEGIN PRIVATE KEY-----\n" +
                 "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC5V6x4LjhrriUE\n" +
                 "j171bPjAd38F/WC/Qdw9FvpiqpoJ1p85qncqFmDd5nYaWW1rnGjoLu0apzD0PLvA\n" +
                 "K8cbAMDn+PKA0vjkabndQrUp0vDNyYvTuCg4DLFdO/XfZP2IsTSACgctNp//G/IK\n" +
@@ -203,9 +259,7 @@ public class MockUtils {
                 "Nl8EIyL+oPat0awur9FwxL3AyKTL75fykdiOf6Qy96Je4X7WojGmyL7a3Hbh29NT\n" +
                 "VNAzHrCYpRtxCNVoatW2lA8AvySWsiEwMTmdNMubjWcSPx8gHVmzGoOnKK44Ytaf\n" +
                 "TZVu0T1HwCkWzUMS7ULfwtw=\n" +
-                "-----END PRIVATE KEY-----" );
-
-        return new PartnerConfiguration( partnerConfigurationMap, sensitiveConfigurationMap );
+                "-----END PRIVATE KEY-----";
     }
 
     public static PsuInformation aPsuInformation(){
@@ -226,10 +280,75 @@ public class MockUtils {
     }
 
     /**
+     * @return A public key, for test purpose.
+     */
+    public static PublicKey aPublicKey(){
+        String pemKey = aPublicKeyPem().replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("[\\r\\n]+", "");
+        try {
+            X509EncodedKeySpec spec = new X509EncodedKeySpec(Base64.getDecoder().decode( pemKey ));
+            KeyFactory factory = KeyFactory.getInstance("RSA");
+            return factory.generatePublic( spec );
+        }
+        catch( Exception e ){
+            // This would happen in a testing context: spare the exception throwing.
+            // The test case using this will probably fail anyway.
+            return null;
+        }
+    }
+
+    /**
+     * @return a public key in PEM format.
+     */
+    public static String aPublicKeyPem(){
+        return "-----BEGIN PUBLIC KEY-----\n" +
+                "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuVeseC44a64lBI9e9Wz4\n" +
+                "wHd/Bf1gv0HcPRb6YqqaCdafOap3KhZg3eZ2Gllta5xo6C7tGqcw9Dy7wCvHGwDA\n" +
+                "5/jygNL45Gm53UK1KdLwzcmL07goOAyxXTv132T9iLE0gAoHLTaf/xvyCh+Z1hPc\n" +
+                "NOIPXeKDk9JJQeBQvF0He3HlkDmmg2xqnrc1r9Z3rlar/vrZ7DbUtL2HSCIJIfmn\n" +
+                "C8VU8pYkjkDXjqwiOGRrfUQpSYHJmoeSWdVW2kI4rACL/Gv/z4YGzlCyk+wfDpek\n" +
+                "dQ0B4fDBk/tQI7uilU0F62tXFRCyLtubARpyHqAGdWBdE9HmW4ly3EL7NZVG29RZ\n" +
+                "XwIDAQAB\n" +
+                "-----END PUBLIC KEY-----";
+    }
+
+    /**
+     * Generate an {@link RSAHolder} instance, containing fake elements, for test purpose.
+     */
+    public static RSAHolder anRsaHolder(){
+        try {
+            return new RSAHolder.RSAHolderBuilder()
+                    .parseChain( aClientCertificatePem() )
+                    .parsePrivateKey( aPrivateKeyPem() )
+                    .build();
+        } catch (Exception e) {
+            // this is testing context: ignore the exception. The test case using this will probably fail anyway.
+            return null;
+        }
+    }
+
+    /**
      * Generate a valid {@link RequestConfiguration}.
      */
     public static RequestConfiguration aRequestConfiguration(){
         return new RequestConfiguration( aContractConfiguration(), anEnvironment(), aPartnerConfiguration() );
+    }
+
+    /**
+     * Generate a sample {@link Signature}.
+     */
+    public static Signature aSignature(){
+        Signature signature = new Signature("a-key-id", Algorithm.RSA_SHA256, null, "(request-target)" );
+        Signer signer = new Signer( aPrivateKey(), signature );
+        try {
+            signature = signer.sign( "POST", "/some/path", new HashMap<>() );
+        } catch (Exception e) {
+            // This would happen in a testing context: spare the exception throwing. The test case will probably fail anyway.
+            return null;
+        }
+
+        return signature;
     }
 
 }

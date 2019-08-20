@@ -36,7 +36,7 @@ public class MainHttp {
             natixisHttpClient.init( partnerConfiguration );
             //NatixisPaymentInitResponse paymentInit = natixisHttpClient.paymentInit( initPayment(), MockUtils.aPsuInformation(), requestConfiguration );
             //natixisHttpClient.paymentStatus(paymentInit.getPaymentId(), requestConfiguration);
-            Payment payment = natixisHttpClient.paymentStatus("0000000651-156622395800013135819352", requestConfiguration);
+            Payment payment = natixisHttpClient.paymentStatus("0000000651-1566223958000abcde", requestConfiguration);
             payment.getChargeBearer();
         } catch( Exception e ){
             e.printStackTrace();
@@ -66,7 +66,9 @@ public class MainHttp {
     }
 
     private static Payment initPayment(){
-        return MockUtils.aPayment();
+        return MockUtils.aPaymentBuilder()
+                //.withBeneficiary( null )
+                .build();
     }
 
     private static Date add( Date to, int days ){
