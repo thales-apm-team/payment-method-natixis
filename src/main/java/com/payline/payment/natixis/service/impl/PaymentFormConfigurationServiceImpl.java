@@ -1,6 +1,7 @@
 package com.payline.payment.natixis.service.impl;
 
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.paymentform.bean.PaymentFormLogo;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormConfigurationRequest;
@@ -14,7 +15,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Locale;
 
-public class PaymentFormConfigurationServiceImpl implements PaymentFormConfigurationService {
+public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigurationService {
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentFormConfigurationServiceImpl.class);
 
@@ -38,23 +39,5 @@ public class PaymentFormConfigurationServiceImpl implements PaymentFormConfigura
         }
 
         return pfcResponse;
-    }
-
-    @Override
-    public PaymentFormLogoResponse getPaymentFormLogo(PaymentFormLogoRequest paymentFormLogoRequest) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public PaymentFormLogo getLogo(String s, Locale locale) {
-        // TODO
-        return null;
-    }
-
-    @Override
-    public PaymentFormLogo getSchemeLogo(String schemeName) {
-        // TODO
-        return null;
     }
 }

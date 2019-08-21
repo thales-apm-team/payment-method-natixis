@@ -10,6 +10,7 @@ import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.bean.payment.Environment;
+import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import org.tomitribe.auth.signatures.Algorithm;
 import org.tomitribe.auth.signatures.Signature;
 import org.tomitribe.auth.signatures.Signer;
@@ -100,6 +101,22 @@ public class MockUtils {
                 "http://redirectionURL.com",
                 "http://redirectionCancelURL.com",
                 true);
+    }
+
+    /**
+     * Generate a valid {@link PartnerConfiguration}.
+     */
+    public static PartnerConfiguration aPartnerConfiguration(){
+        Map<String, String> partnerConfigurationMap = new HashMap<>();
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL, "https://np-auth.api.qua.natixis.com/api");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
+
+        Map<String, String> sensitiveConfigurationMap = new HashMap<>();
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, aClientCertificatePem() );
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY, aPrivateKeyPem() );
+
+        return new PartnerConfiguration( partnerConfigurationMap, sensitiveConfigurationMap );
     }
 
     /**
@@ -201,19 +218,15 @@ public class MockUtils {
     }
 
     /**
-     * Generate a valid {@link PartnerConfiguration}.
+     * Generate a valid {@link PaymentFormLogoRequest}.
      */
-    public static PartnerConfiguration aPartnerConfiguration(){
-        Map<String, String> partnerConfigurationMap = new HashMap<>();
-        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL, "https://np-auth.api.qua.natixis.com/api");
-        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
-        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
-
-        Map<String, String> sensitiveConfigurationMap = new HashMap<>();
-        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, aClientCertificatePem() );
-        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY, aPrivateKeyPem() );
-
-        return new PartnerConfiguration( partnerConfigurationMap, sensitiveConfigurationMap );
+    public static PaymentFormLogoRequest aPaymentFormLogoRequest(){
+        return PaymentFormLogoRequest.PaymentFormLogoRequestBuilder.aPaymentFormLogoRequest()
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withLocale( Locale.getDefault() )
+                .build();
     }
 
     /**
