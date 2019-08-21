@@ -1,6 +1,9 @@
 package com.payline.payment.natixis.service.impl;
 
+import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
+import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.payment.natixis.utils.properties.ReleaseProperties;
 import com.payline.pmapi.bean.configuration.ReleaseInformation;
@@ -9,6 +12,7 @@ import com.payline.pmapi.bean.configuration.parameter.impl.InputParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.ListBoxParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.PasswordParameter;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
+import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.ConfigurationService;
 import org.apache.logging.log4j.Logger;
@@ -51,6 +55,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     private ReleaseProperties releaseProperties = ReleaseProperties.getInstance();
     private I18nService i18n = I18nService.getInstance();
+    private NatixisHttpClient natixisHttpClient = NatixisHttpClient.getInstance();
 
     @Override
     public List<AbstractParameter> getParameters(Locale locale) {
@@ -165,8 +170,47 @@ public class ConfigurationServiceImpl implements ConfigurationService {
 
     @Override
     public Map<String, String> check(ContractParametersCheckRequest contractParametersCheckRequest) {
-        // TODO
-        return null;
+        final Map<String, String> errors = new HashMap<>();
+
+        Map<String, String> accountInfo = contractParametersCheckRequest.getAccountInfo();
+        Locale locale = contractParametersCheckRequest.getLocale();
+
+        // check required fields
+        for( AbstractParameter param : this.getParameters( locale ) ){
+            if( param.isRequired() && accountInfo.get( param.getKey() ) == null ){
+                String message = i18n.getMessage("contract." + param.getKey() + ".requiredError", locale);
+                errors.put( param.getKey(), message );
+            }
+        }
+
+        // If client ID or client secret is missing, no need to go further, as they are both required
+        String clientIdKey = Constants.ContractConfigurationKeys.CLIENT_ID;
+        String clientSecretKey = Constants.ContractConfigurationKeys.CLIENT_SECRET;
+        if( errors.containsKey( clientIdKey )
+                || errors.containsKey( clientSecretKey ) ){
+            return errors;
+        }
+
+        // Check validity of client ID and secret by retrieving an access token
+        // to do so, we first need to replace the value of client ID and secret in existing ContractConfiguration
+        RequestConfiguration requestConfiguration = RequestConfiguration.build( contractParametersCheckRequest );
+        Map<String, ContractProperty> contractProperties = requestConfiguration.getContractConfiguration().getContractProperties();
+        contractProperties.put( clientIdKey, new ContractProperty( accountInfo.get( clientIdKey ) ) );
+        contractProperties.put( clientSecretKey, new ContractProperty( accountInfo.get( clientSecretKey ) ) );
+
+        // Init HTTP client
+        natixisHttpClient.init( requestConfiguration.getPartnerConfiguration() );
+        try {
+            // Try to retrieve an access token
+            natixisHttpClient.authorize(requestConfiguration);
+        }
+        catch( PluginException e ){
+            // If an exception is thrown, it means that the client ID or secret is wrong
+            errors.put( clientIdKey, e.getErrorCode() );
+            errors.put( clientSecretKey, e.getErrorCode() );
+        }
+
+        return errors;
     }
 
     @Override

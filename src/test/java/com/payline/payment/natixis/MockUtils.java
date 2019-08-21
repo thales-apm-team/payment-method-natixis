@@ -7,6 +7,7 @@ import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.http.Authorization;
 import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
+import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.bean.payment.Environment;
@@ -28,6 +29,27 @@ import static com.payline.payment.natixis.TestUtils.addTime;
  * Utility class that generates mocks of frequently used objects.
  */
 public class MockUtils {
+
+    /**
+     * Generate a valid accountInfo, an attribute of a {@link ContractParametersCheckRequest} instance.
+     */
+    public static Map<String, String> anAccountInfo(){
+        return anAccountInfo( aContractConfiguration() );
+    }
+
+    /**
+     * Generate a valid accountInfo, an attribute of a {@link ContractParametersCheckRequest} instance,
+     * from the given {@link ContractConfiguration}.
+     *
+     * @param contractConfiguration The model object from which the properties will be copied
+     */
+    public static Map<String, String> anAccountInfo( ContractConfiguration contractConfiguration ){
+        Map<String, String> accountInfo = new HashMap<>();
+        for( Map.Entry<String, ContractProperty> entry : contractConfiguration.getContractProperties().entrySet() ){
+            accountInfo.put(entry.getKey(), entry.getValue().getValue());
+        }
+        return accountInfo;
+    }
 
     /**
      * Generate a valid {@link Authorization}.
@@ -91,6 +113,26 @@ public class MockUtils {
         contractProperties.put(Constants.ContractConfigurationKeys.SERVICE_LEVEL, new ContractProperty( "SEPA" ));
 
         return new ContractConfiguration("Natixis", contractProperties);
+    }
+
+    /**
+     * Generate a valid {@link ContractParametersCheckRequest}.
+     */
+    public static ContractParametersCheckRequest aContractParametersCheckRequest(){
+        return aContractParametersCheckRequestBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link ContractParametersCheckRequest}.
+     * This way, some attributes may be overridden to match specific needs.
+     */
+    public static ContractParametersCheckRequest.CheckRequestBuilder aContractParametersCheckRequestBuilder(){
+        return ContractParametersCheckRequest.CheckRequestBuilder.aCheckRequest()
+                .withAccountInfo( anAccountInfo() )
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withLocale( Locale.getDefault() )
+                .withPartnerConfiguration( aPartnerConfiguration() );
     }
 
     /**

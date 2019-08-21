@@ -108,7 +108,7 @@ public class NatixisHttpClient {
             int connectTimeout;
             int socketTimeout;
             try {
-                // request config timeouts
+                // request config timeouts (in seconds)
                 connectionRequestTimeout = Integer.parseInt(config.get("http.connectionRequestTimeout"));
                 connectTimeout = Integer.parseInt(config.get("http.connectTimeout"));
                 socketTimeout = Integer.parseInt(config.get("http.socketTimeout"));
@@ -165,7 +165,7 @@ public class NatixisHttpClient {
      *
      * @param requestConfiguration the request configuration
      */
-    protected Authorization authorize( RequestConfiguration requestConfiguration ){
+    public Authorization authorize( RequestConfiguration requestConfiguration ){
         if( this.isAuthorized() ){
             LOGGER.info("Client already contains a valid authorization");
             return this.authorization;
