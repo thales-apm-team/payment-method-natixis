@@ -3,17 +3,11 @@ package com.payline.payment.natixis.service.impl;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
 import com.payline.pmapi.bean.common.FailureCause;
-import com.payline.pmapi.bean.paymentform.bean.PaymentFormLogo;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormConfigurationRequest;
-import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import com.payline.pmapi.bean.paymentform.response.configuration.PaymentFormConfigurationResponse;
 import com.payline.pmapi.bean.paymentform.response.configuration.impl.PaymentFormConfigurationResponseFailure;
-import com.payline.pmapi.bean.paymentform.response.logo.PaymentFormLogoResponse;
 import com.payline.pmapi.logger.LogManager;
-import com.payline.pmapi.service.PaymentFormConfigurationService;
 import org.apache.logging.log4j.Logger;
-
-import java.util.Locale;
 
 public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigurationService {
 
