@@ -1,11 +1,16 @@
 package com.payline.payment.natixis.service.impl;
 
+import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.*;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
+import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
+import com.payline.payment.natixis.utils.properties.ConfigProperties;
 import com.payline.pmapi.bean.common.FailureCause;
+import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
@@ -13,89 +18,89 @@ import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.PaymentService;
 import org.apache.logging.log4j.Logger;
 
+import java.math.BigInteger;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.Date;
+import java.util.Locale;
 
 public class PaymentServiceImpl implements PaymentService {
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentServiceImpl.class);
 
+    private ConfigProperties config = ConfigProperties.getInstance();
     private NatixisHttpClient natixisHttpClient = NatixisHttpClient.getInstance();
 
     @Override
     public PaymentResponse paymentRequest(PaymentRequest paymentRequest) {
-        PaymentResponse paymentResponse = null; // TODO: remove useless initialization
+        PaymentResponse paymentResponse;
 
         try {
+            RequestConfiguration requestConfiguration = RequestConfiguration.build( paymentRequest );
+
             // Init HTTP client
             natixisHttpClient.init( paymentRequest.getPartnerConfiguration() );
 
-            // Build request configuration
-            RequestConfiguration requestConfiguration = RequestConfiguration.build( paymentRequest );
+            // Retrieve contract info
+            ContractConfiguration contract = paymentRequest.getContractConfiguration();
+
+            // Perform controls on the input data
+            if( paymentRequest.getAmount() == null ){
+                throw new InvalidDataException("paymentRequest.amount is required");
+            } else if( paymentRequest.getAmount().getCurrency() == null ){
+                throw new InvalidDataException("paymentRequest.amount.currency is required");
+            }
+            String debtorName = null;
+            if( paymentRequest.getBuyer() != null && paymentRequest.getBuyer().getFullName() != null ){
+                debtorName = paymentRequest.getBuyer().getFullName().toString();
+            }
+            String reference = paymentRequest.getOrder() != null ? paymentRequest.getOrder().getReference() : null;
 
             // Build Payment from PaymentRequest
-            // TODO !
             Payment payment = new Payment.PaymentBuilder()
                     .withPaymentInformationIdentification( paymentRequest.getTransactionId() )
                     .withCreationDateTime( new Date() )
                     .withNumberOfTransactions( 1 )
                     .withInitiatingParty( new PartyIdentification.PartyIdentificationBuilder()
-                            .withName("NATIXIS PAYMENT SOLUTIONS")
+                            .withName( config.get("payment.initiatingParty.name") )
                             .build() )
                     .withPaymentTypeInformation( new PaymentTypeInformation.PaymentTypeInformationBuilder()
-                            .withServiceLevel("SEPA")
-                            .withCategoryPurpose("DVPM")
-                            .withLocalInstrument("INST")
+                            .withServiceLevel( contract.getProperty(Constants.ContractConfigurationKeys.SERVICE_LEVEL ).getValue() )
+                            .withCategoryPurpose( contract.getProperty(Constants.ContractConfigurationKeys.CATEGORY_PURPOSE ).getValue() )
+                            .withLocalInstrument( contract.getProperty(Constants.ContractConfigurationKeys.LOCAL_INSTRUMENT ).getValue() )
                             .build() )
                     .withDebtor( new PartyIdentification.PartyIdentificationBuilder()
-                            .withName("Jean Dupont")
-                            .withPostalAddress( new PostalAddress.PostalAddressBuilder()
-                                    .withCountry("FR")
-                                    .addAddressLine("25 rue de la petite taverne")
-                                    .addAddressLine("74120 Megève")
-                                    .build()
-                            )
-                            .withPrivateId( new Identification.IdentificationBuilder()
-                                    .withIdentification("123456753")
-                                    .withSchemeName("BANK")
-                                    .withIssuer("CCBPFRPPNAN")
-                                    .build()
-                            )
+                            .withName( debtorName )
                             .build() )
+                    // TODO: get debtorAgent.bicFi from paymentRequest.getPaymentFormContext().getPaymentFormParameter()
                     .withDebtorAgent( new FinancialInstitutionIdentification( "CMBRFR2BARK" ) )
                     .withBeneficiary( new Beneficiary.BeneficiaryBuilder()
                             .withCreditor( new PartyIdentification.PartyIdentificationBuilder()
-                                    .withName("Marie Durand")
-                                    .withPostalAddress( new PostalAddress.PostalAddressBuilder()
-                                            .withCountry("FR")
-                                            .addAddressLine("8 rue pavée d'andouilles")
-                                            .addAddressLine("71460 Saint-Gengoux-le-national")
-                                            .build()
-                                    )
+                                    .withName( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_NAME ).getValue() )
                                     .build()
                             )
                             .withCreditorAccount( new AccountIdentification.AccountIdentificationBuilder()
-                                    .withIban("FR7613807000343142150215863")
+                                    .withIban( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_IBAN ).getValue() )
                                     .build()
                             )
-                            .withCreditorAgent( new FinancialInstitutionIdentification("CCBPFRPPNAN"))
                             .build()
                     )
-                    .withPurpose("COMC")
-                    .withChargeBearer("SLEV")
-                    .withRequestedExecutionDate( new Date() )
+                    .withPurpose( contract.getProperty(Constants.ContractConfigurationKeys.PURPOSE ).getValue() )
+                    .withChargeBearer( contract.getProperty(Constants.ContractConfigurationKeys.CHARGE_BEARER ).getValue() )
+                    .withRequestedExecutionDate( paymentRequest.getDifferedActionDate() )
                     .addCreditTransferTransactionInformation( new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
                             .withInstructedAmount( new Amount.AmountBuilder()
-                                    .withAmount("150")
-                                    .withCurrency("EUR")
+                                    .withAmount( this.formatAmount( paymentRequest.getAmount().getAmountInSmallestUnit() ) )
+                                    .withCurrency( paymentRequest.getAmount().getCurrency().getCurrencyCode() )
                                     .build()
                             )
-                            .withPaymentIdentification( new PaymentIdentification( "TODO", "TODO" ))
-                            .addRemittanceInformation( "Argent de poche" )
+                            .withPaymentIdentification( new PaymentIdentification( paymentRequest.getTransactionId(), paymentRequest.getTransactionId() ))
+                            .addRemittanceInformation( reference )
                             .build()
                     )
                     .withSupplementaryData( new SupplementaryData.SupplementaryDataBuilder()
-                            .withSuccessfulReportUrl("https://www.successful.fr")
-                            .withUnsuccessfulReportUrl("https://www.unsuccessful.fr")
+                            .withSuccessfulReportUrl( paymentRequest.getEnvironment().getRedirectionReturnURL() )
+                            .withUnsuccessfulReportUrl( paymentRequest.getEnvironment().getRedirectionCancelURL() )
                             .build()
                     )
                     .build();
@@ -107,9 +112,10 @@ public class PaymentServiceImpl implements PaymentService {
                     .build();
 
             // Initiate the payment
-            natixisHttpClient.paymentInit( payment, psuInformation, requestConfiguration );
+            NatixisPaymentInitResponse response = natixisHttpClient.paymentInit( payment, psuInformation, requestConfiguration );
 
-            // TODO: what next ?
+            // TODO
+            paymentResponse = null;
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();
@@ -124,5 +130,17 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return paymentResponse;
+    }
+
+    /**
+     * Format the {@link BigInteger} amount in smallest units to {@link String} amount in euros.
+     *
+     * @param amountInSmallestUnit The amount in smallest units
+     * @return The amount in euros, as a string
+     */
+    String formatAmount( BigInteger amountInSmallestUnit ){
+        NumberFormat nf = NumberFormat.getInstance( Locale.UK );
+        nf.setMinimumFractionDigits(2);
+        return nf.format( amountInSmallestUnit.floatValue()/100 );
     }
 }

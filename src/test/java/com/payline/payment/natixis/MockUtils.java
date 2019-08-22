@@ -8,14 +8,17 @@ import com.payline.payment.natixis.utils.http.Authorization;
 import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
+import com.payline.pmapi.bean.payment.Browser;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.bean.payment.Environment;
+import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import org.tomitribe.auth.signatures.Algorithm;
 import org.tomitribe.auth.signatures.Signature;
 import org.tomitribe.auth.signatures.Signer;
 
+import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -67,6 +70,17 @@ public class MockUtils {
                 .withAccessToken("ABCD1234567890")
                 .withTokenType("Bearer")
                 .withExpiresAt( addTime(new Date(), Calendar.HOUR, 1) );
+    }
+
+    /**
+     * Generate a valid {@link Browser}.
+     */
+    public static Browser aBrowser(){
+        return Browser.BrowserBuilder.aBrowser()
+                .withLocale( Locale.getDefault() )
+                .withIp( "192.168.0.1" )
+                .withUserAgent( aUserAgent() )
+                .build();
     }
 
     /**
@@ -124,7 +138,7 @@ public class MockUtils {
 
     /**
      * Generate a builder for a valid {@link ContractParametersCheckRequest}.
-     * This way, some attributes may be overridden to match specific needs.
+     * This way, some attributes may be overridden to match specific test needs.
      */
     public static ContractParametersCheckRequest.CheckRequestBuilder aContractParametersCheckRequestBuilder(){
         return ContractParametersCheckRequest.CheckRequestBuilder.aCheckRequest()
@@ -162,6 +176,42 @@ public class MockUtils {
     }
 
     /**
+     * Generate a valid Payline Amount.
+     */
+    public static com.payline.pmapi.bean.common.Amount aPaylineAmount(){
+        return new com.payline.pmapi.bean.common.Amount(BigInteger.valueOf(1000), Currency.getInstance("EUR"));
+    }
+
+    /**
+     * Generate a valid {@link PaymentRequest}.
+     */
+    public static PaymentRequest aPaylinePaymentRequest(){
+        return aPaylinePaymentRequestBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link PaymentRequest}.
+     * This way, some attributes may be overridden to match specific test needs.
+     */
+    public static PaymentRequest.Builder aPaylinePaymentRequestBuilder(){
+        return PaymentRequest.builder()
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withBrowser( aBrowser() )
+                .withAmount( aPaylineAmount() )
+                .withOrder( null ) // TODO
+                .withSoftDescriptor( null ) // TODO
+                .withTransactionId( null ) // TODO
+                .withBuyer( null ) // TODO
+                .withLocale( Locale.getDefault() )
+                .withPaymentFormContext( null ) // TODO
+                .withDifferedActionDate( null ) // TODO
+                .withCaptureNow( true )
+                .withSubMerchant( null ); // TODO
+    }
+
+    /**
      * Generate a valid {@link Payment}
      */
     public static Payment aPayment(){
@@ -170,7 +220,7 @@ public class MockUtils {
 
     /**
      * Generate a builder for a valid {@link Payment}.
-     * This way, some attributes may be overridden to match specific needs.
+     * This way, some attributes may be overridden to match specific test needs.
      */
     public static Payment.PaymentBuilder aPaymentBuilder(){
         SimpleDateFormat timestampDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -323,7 +373,7 @@ public class MockUtils {
                 .withIpAddress( "192.168.0.0" )
                 .withIpPort( 443 )
                 .withHttpMethod( "GET" )
-                .withHeaderUserAgent( "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0" )
+                .withHeaderUserAgent( aUserAgent() )
                 .withHeaderReferer( "https://test.domain.com" )
                 .withHeaderAccept( "application/json" )
                 .withHeaderAcceptCharset( "utf-8, iso-8859-1;q=0.5" )
@@ -406,4 +456,10 @@ public class MockUtils {
         return signature;
     }
 
+    /**
+     * @return a valid user agent.
+     */
+    public static String aUserAgent(){
+        return "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:67.0) Gecko/20100101 Firefox/67.0";
+    }
 }
