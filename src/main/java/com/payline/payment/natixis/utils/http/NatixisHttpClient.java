@@ -117,7 +117,7 @@ public class NatixisHttpClient {
                 this.retries = Integer.parseInt(config.get("http.retries"));
             }
             catch( NumberFormatException e ){
-                throw new PluginException("the http.* properties must be integers", e);
+                throw new PluginException("plugin error: http.* properties must be integers", e);
             }
 
             RequestConfig requestConfig = RequestConfig.custom()
@@ -220,7 +220,7 @@ public class NatixisHttpClient {
 
             // retrieve access token & token type
             if( authResponse.getAccessToken() == null ){
-                throw new PluginException("No access_token in " + API_AUTH_PATH_OAUTH_TOKEN + " response", FailureCause.COMMUNICATION_ERROR);
+                throw new PluginException("No access_token in " + API_AUTH_PATH_OAUTH_TOKEN + " response", FailureCause.PARTNER_UNKNOWN_ERROR);
             }
             authBuilder.withAccessToken( authResponse.getAccessToken() )
                     .withTokenType( authResponse.getTokenType() == null ? "Bearer" : authResponse.getTokenType() );
@@ -477,8 +477,9 @@ public class NatixisHttpClient {
      * @return The {@link PluginException} to throw
      */
     PluginException handleErrorResponse( StringResponse response ){
-        NatixisErrorResponse errorResponse;
         System.err.println( response.getContent() ); // TODO: remove !
+        // Trying to parse the error response with the specified format
+        NatixisErrorResponse errorResponse;
         try {
             errorResponse = NatixisErrorResponse.fromJson( response.getContent() );
         }
@@ -486,12 +487,29 @@ public class NatixisHttpClient {
             errorResponse = null;
         }
 
-        String message = "unknown partner error";
+        // Extract error code and message from the error response
+        String message = "partner error: " + response.getStatusCode() + " " + response.getStatusMessage();
+        int errorCode = response.getStatusCode();
         if( errorResponse != null && errorResponse.getMessage() != null ){
             message = errorResponse.getMessage();
+            try {
+                errorCode = Integer.parseInt(errorResponse.getStatus());
+            }
+            catch( NumberFormatException e ){
+                LOGGER.error("Unable to parse the response status as an integer: {}", errorResponse.getStatus());
+            }
         }
-        return new PluginException(message, FailureCause.PARTNER_UNKNOWN_ERROR);
-        // TODO: change the FailureCause if we get a list of possible error cases and we map each of them on FailureCauses
+
+        // Mapping between partner error codes and Payline failure causes
+        FailureCause failureCause = FailureCause.PARTNER_UNKNOWN_ERROR;
+        if( errorCode == HttpStatus.SC_BAD_REQUEST || errorCode == HttpStatus.SC_NOT_FOUND ){
+            failureCause = FailureCause.INVALID_DATA;
+        }
+        else if( errorCode > 400 && errorCode < 500 ){
+            failureCause = FailureCause.COMMUNICATION_ERROR;
+        }
+
+        return new PluginException(message, failureCause);
     }
 
     /**

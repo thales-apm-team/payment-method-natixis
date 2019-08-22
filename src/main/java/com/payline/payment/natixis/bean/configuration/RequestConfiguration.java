@@ -24,7 +24,7 @@ public class RequestConfiguration {
 
     public RequestConfiguration(ContractConfiguration contractConfiguration, Environment environment, PartnerConfiguration partnerConfiguration) {
         if( contractConfiguration == null ){
-            throw new InvalidDataException("Mission request contractConfiguration");
+            throw new InvalidDataException("Missing request contractConfiguration");
         }
         if( environment == null ){
             throw new InvalidDataException("Missing request environment");
