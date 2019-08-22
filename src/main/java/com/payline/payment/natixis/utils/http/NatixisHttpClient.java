@@ -208,7 +208,7 @@ public class NatixisHttpClient {
         StringResponse response = this.execute( httpPost );
 
         // Handle potential error
-        if( response.getStatusCode() != HttpStatus.SC_OK ){
+        if( !response.isSuccess() ){
             throw this.handleAuthorizationErrorResponse( response );
         }
 
@@ -307,7 +307,7 @@ public class NatixisHttpClient {
         StringResponse response = this.execute( httpPost );
 
         // Handle potential error
-        if( response.getStatusCode() != HttpStatus.SC_CREATED ){
+        if( !response.isSuccess() ){
             throw this.handleErrorResponse( response );
         }
 
@@ -357,7 +357,7 @@ public class NatixisHttpClient {
         StringResponse response = this.execute( httpGet );
 
         // Handle potential error
-        if( response.getStatusCode() != HttpStatus.SC_OK ){
+        if( !response.isSuccess() ){
             throw this.handleErrorResponse( response );
         }
 
@@ -502,11 +502,8 @@ public class NatixisHttpClient {
 
         // Mapping between partner error codes and Payline failure causes
         FailureCause failureCause = FailureCause.PARTNER_UNKNOWN_ERROR;
-        if( errorCode == HttpStatus.SC_BAD_REQUEST || errorCode == HttpStatus.SC_NOT_FOUND ){
+        if( errorCode >= 400 && errorCode < 500 ){
             failureCause = FailureCause.INVALID_DATA;
-        }
-        else if( errorCode > 400 && errorCode < 500 ){
-            failureCause = FailureCause.COMMUNICATION_ERROR;
         }
 
         return new PluginException(message, failureCause);

@@ -41,6 +41,10 @@ public class StringResponse {
         return statusMessage;
     }
 
+    public boolean isSuccess(){
+        return statusCode >= 200 && statusCode < 300;
+    }
+
     /**
      * Safely extract the elements of a {@link StringResponse} from a {@link HttpResponse}.
      * @param httpResponse the HTTP response
