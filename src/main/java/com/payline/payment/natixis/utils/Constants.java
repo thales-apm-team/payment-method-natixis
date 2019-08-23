@@ -39,6 +39,17 @@ public class Constants {
         private PartnerConfigurationKeys(){}
     }
 
+    /**
+     * Keys for the fields in the payment form (PaymentFormParameter map).
+     */
+    public static class PaymentFormContextKeys {
+
+        public static final String DEBTOR_BIC = "debtorBic";
+
+        /* Static utility class : no need to instantiate it (Sonar bug fix) */
+        private PaymentFormContextKeys(){}
+    }
+
     /* Static utility class : no need to instantiate it (Sonar bug fix) */
     private Constants(){}
 

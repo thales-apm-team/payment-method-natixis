@@ -6,12 +6,15 @@ import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.http.Authorization;
 import com.payline.payment.natixis.utils.security.RSAHolder;
+import com.payline.pmapi.bean.common.Buyer;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
 import com.payline.pmapi.bean.payment.Browser;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.bean.payment.Environment;
+import com.payline.pmapi.bean.payment.Order;
+import com.payline.pmapi.bean.payment.PaymentFormContext;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import org.tomitribe.auth.signatures.Algorithm;
@@ -80,6 +83,15 @@ public class MockUtils {
                 .withLocale( Locale.getDefault() )
                 .withIp( "192.168.0.1" )
                 .withUserAgent( aUserAgent() )
+                .build();
+    }
+
+    /**
+     * Generate a valid {@link Buyer}.
+     */
+    public static Buyer aBuyer(){
+        return Buyer.BuyerBuilder.aBuyer()
+                .withFullName( new Buyer.FullName( "Marie", "Durand", "1" ) )
                 .build();
     }
 
@@ -160,6 +172,17 @@ public class MockUtils {
     }
 
     /**
+     * Generate a valid, but not complete, {@link Order}
+     */
+    public static Order anOrder(){
+        return Order.OrderBuilder.anOrder()
+                .withDate( new Date() )
+                .withAmount( aPaylineAmount() )
+                .withReference( "ORDER-REF-123456" )
+                .build();
+    }
+
+    /**
      * Generate a valid {@link PartnerConfiguration}.
      */
     public static PartnerConfiguration aPartnerConfiguration(){
@@ -200,15 +223,14 @@ public class MockUtils {
                 .withPartnerConfiguration( aPartnerConfiguration() )
                 .withBrowser( aBrowser() )
                 .withAmount( aPaylineAmount() )
-                .withOrder( null ) // TODO
-                .withSoftDescriptor( null ) // TODO
-                .withTransactionId( null ) // TODO
-                .withBuyer( null ) // TODO
+                .withOrder( anOrder() )
+                .withSoftDescriptor( "softDescriptor" )
+                .withTransactionId( "123456789012345678901" )
+                .withBuyer( aBuyer() )
                 .withLocale( Locale.getDefault() )
-                .withPaymentFormContext( null ) // TODO
-                .withDifferedActionDate( null ) // TODO
-                .withCaptureNow( true )
-                .withSubMerchant( null ); // TODO
+                .withPaymentFormContext( aPaymentFormContext() )
+                .withDifferedActionDate( TestUtils.addTime( new Date(), Calendar.DATE, 5) )
+                .withCaptureNow( true );
     }
 
     /**
@@ -307,6 +329,19 @@ public class MockUtils {
      */
     public static String aPaymentId(){
         return "0000000634-156620939900013135879318";
+    }
+
+    /**
+     * Generate a valid {@link PaymentFormContext}.
+     */
+    public static PaymentFormContext aPaymentFormContext(){
+        Map<String, String> paymentFormParameter = new HashMap<>();
+        paymentFormParameter.put( Constants.PaymentFormContextKeys.DEBTOR_BIC, "CMBRFR2BARK" );
+
+        return PaymentFormContext.PaymentFormContextBuilder.aPaymentFormContext()
+                .withPaymentFormParameter( paymentFormParameter )
+                .withSensitivePaymentFormParameter( new HashMap<>() )
+                .build();
     }
 
     /**

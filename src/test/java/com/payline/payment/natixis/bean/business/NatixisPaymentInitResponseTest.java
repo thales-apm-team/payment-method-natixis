@@ -9,6 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -49,7 +51,7 @@ public class NatixisPaymentInitResponseTest {
 
     @ParameterizedTest
     @MethodSource("fromStringResponse_passing_set")
-    void fromStringResponse_passing( String responseContent, String expectedUrl, String locationHeader, String expectedPaymentId ) throws NoSuchFieldException {
+    void fromStringResponse_passing( String responseContent, String expectedUrl, String locationHeader, String expectedPaymentId ) throws NoSuchFieldException, MalformedURLException {
         // given: response content and location header
         Map<String, String> headers = new HashMap<>();
         headers.put("location", locationHeader);
@@ -60,7 +62,7 @@ public class NatixisPaymentInitResponseTest {
 
         // then: extracted values are as expected
         assertEquals( expectedPaymentId, instance.getPaymentId() );
-        assertEquals( expectedUrl, instance.getContentApprovalUrl() );
+        assertEquals( new URL(expectedUrl), instance.getContentApprovalUrl() );
     }
 
     /**

@@ -14,15 +14,19 @@ import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
+import com.payline.pmapi.bean.payment.response.impl.PaymentResponseRedirect;
 import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.PaymentService;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigInteger;
-import java.text.DecimalFormat;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Locale;
+
+import static com.payline.payment.natixis.utils.Constants.PaymentFormContextKeys.DEBTOR_BIC;
 
 public class PaymentServiceImpl implements PaymentService {
 
@@ -55,6 +59,13 @@ public class PaymentServiceImpl implements PaymentService {
                 debtorName = paymentRequest.getBuyer().getFullName().toString();
             }
             String reference = paymentRequest.getOrder() != null ? paymentRequest.getOrder().getReference() : null;
+            String debtorBic;
+            if( paymentRequest.getPaymentFormContext() == null
+                    || paymentRequest.getPaymentFormContext().getPaymentFormParameter() == null
+                    || paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC ) == null ){
+                throw new InvalidDataException("debtor BIC is required in payment form context");
+            }
+            debtorBic = paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC );
 
             // Build Payment from PaymentRequest
             Payment payment = new Payment.PaymentBuilder()
@@ -72,8 +83,7 @@ public class PaymentServiceImpl implements PaymentService {
                     .withDebtor( new PartyIdentification.PartyIdentificationBuilder()
                             .withName( debtorName )
                             .build() )
-                    // TODO: get debtorAgent.bicFi from paymentRequest.getPaymentFormContext().getPaymentFormParameter()
-                    .withDebtorAgent( new FinancialInstitutionIdentification( "CMBRFR2BARK" ) )
+                    .withDebtorAgent( new FinancialInstitutionIdentification( debtorBic ) )
                     .withBeneficiary( new Beneficiary.BeneficiaryBuilder()
                             .withCreditor( new PartyIdentification.PartyIdentificationBuilder()
                                     .withName( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_NAME ).getValue() )
@@ -114,8 +124,15 @@ public class PaymentServiceImpl implements PaymentService {
             // Initiate the payment
             NatixisPaymentInitResponse response = natixisHttpClient.paymentInit( payment, psuInformation, requestConfiguration );
 
-            // TODO
-            paymentResponse = null;
+            // Build PaymentResponseRedirect
+            PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder redirectionRequestBuilder = PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder.aRedirectionRequest()
+                    .withUrl( response.getContentApprovalUrl() );
+
+            paymentResponse = PaymentResponseRedirect.PaymentResponseRedirectBuilder.aPaymentResponseRedirect()
+                    .withPartnerTransactionId( response.getPaymentId() )
+                    .withStatusCode( response.getStatusCode() )
+                    .withRedirectionRequest( new PaymentResponseRedirect.RedirectionRequest( redirectionRequestBuilder ) )
+                    .build();
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();

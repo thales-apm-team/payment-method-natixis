@@ -8,6 +8,8 @@ import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.logger.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,23 +17,31 @@ public class NatixisPaymentInitResponse {
 
     private static final Logger LOGGER = LogManager.getLogger(NatixisPaymentInitResponse.class);
 
+    private URL contentApprovalUrl;
     private String paymentId;
-    private String contentApprovalUrl;
+    private String statusCode;
 
-    private NatixisPaymentInitResponse(String paymentId, String contentApprovalUrl) {
-        this.paymentId = paymentId;
+    public NatixisPaymentInitResponse(URL contentApprovalUrl, String paymentId, String statusCode) {
         this.contentApprovalUrl = contentApprovalUrl;
+        this.paymentId = paymentId;
+        this.statusCode = statusCode;
+    }
+
+    public URL getContentApprovalUrl() {
+        return contentApprovalUrl;
     }
 
     public String getPaymentId() {
         return paymentId;
     }
 
-    public String getContentApprovalUrl() {
-        return contentApprovalUrl;
+    public String getStatusCode() {
+        return statusCode;
     }
 
     public static NatixisPaymentInitResponse fromStringResponse(StringResponse response ){
+        String statusCode = response.getStatusCode() + " " + response.getStatusMessage();
+
         // Extract paymentId from 'Location' header
         String locationHeader = response.getHeader("Location");
         if( locationHeader == null ){
@@ -45,12 +55,16 @@ public class NatixisPaymentInitResponse {
         String paymentId = m.group(0);
 
         // Extract consent approval URL from the response JSON body
-        String contentApprovalUrl;
+        URL contentApprovalUrl;
         try {
             JsonObject body = new JsonParser().parse(response.getContent()).getAsJsonObject();
-            contentApprovalUrl = body.getAsJsonObject("_links")
+            String strUrl = body.getAsJsonObject("_links")
                     .getAsJsonObject("consentApproval")
                     .get("href").getAsString();
+            contentApprovalUrl = new URL( strUrl );
+        }
+        catch (MalformedURLException e) {
+            throw new PluginException("Plugin error: malformed redirection url", FailureCause.PARTNER_UNKNOWN_ERROR);
         }
         catch( RuntimeException e ){
             LOGGER.error("Unable to parse the response body to extract the redirection URL: {}",
@@ -58,7 +72,7 @@ public class NatixisPaymentInitResponse {
             throw new PluginException("Plugin error: unable to extract redirection URL");
         }
 
-        return new NatixisPaymentInitResponse(paymentId, contentApprovalUrl);
+        return new NatixisPaymentInitResponse(contentApprovalUrl, paymentId, statusCode);
     }
 
 }
