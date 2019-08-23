@@ -20,8 +20,6 @@ import com.payline.pmapi.service.PaymentService;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Locale;
