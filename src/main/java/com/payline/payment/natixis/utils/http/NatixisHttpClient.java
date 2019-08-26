@@ -3,12 +3,12 @@ package com.payline.payment.natixis.utils.http;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.NatixisErrorResponse;
 import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.authorization.JwtUserBody;
 import com.payline.payment.natixis.bean.business.authorization.NatixisAuthorizationResponse;
 import com.payline.payment.natixis.bean.business.authorization.RFC6749AccessTokenErrorResponse;
-import com.payline.payment.natixis.bean.business.bank.AccountServiceProviders;
 import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
@@ -67,6 +67,8 @@ public class NatixisHttpClient {
 
     private static final String HTTP_HEADER_X_REQUEST_ID = "X-Request-ID";
     private static final String PSUDATE_HEADER_FORMAT = "yyyyMMddHHmmss";
+
+    private static final String MISSING_PAYMENT_API_URL_ERROR = "Missing payment API base url in partnerConfiguration";
 
     private static final Algorithm SIGNATURE_ALGORITHM = Algorithm.RSA_SHA256;
 
@@ -258,10 +260,10 @@ public class NatixisHttpClient {
      *
      * @param requestConfiguration the request configuration
      */
-    public AccountServiceProviders banks( RequestConfiguration requestConfiguration ){
+    public NatixisBanksResponse banks(RequestConfiguration requestConfiguration ){
         String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL);
         if( baseUrl == null ){
-            throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
+            throw new InvalidDataException( MISSING_PAYMENT_API_URL_ERROR );
         }
 
         // Execute GET request
@@ -269,7 +271,7 @@ public class NatixisHttpClient {
 
         // Handle result (error case has been handled, if needed, by get method)
         try {
-            return AccountServiceProviders.fromJson( response.getContent() );
+            return NatixisBanksResponse.fromJson( response.getContent() );
         }
         catch( RuntimeException e ){
             throw new PluginException("Plugin error: unable to parse bank list", e);
@@ -285,7 +287,7 @@ public class NatixisHttpClient {
     public NatixisPaymentInitResponse paymentInit(Payment requestBody, PsuInformation psuInformation, RequestConfiguration requestConfiguration ){
         String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL);
         if( baseUrl == null ){
-            throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
+            throw new InvalidDataException( MISSING_PAYMENT_API_URL_ERROR );
         }
 
         // Authorization
@@ -348,7 +350,7 @@ public class NatixisHttpClient {
     public Payment paymentStatus( String paymentId, RequestConfiguration requestConfiguration ){
         String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL);
         if( baseUrl == null ){
-            throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
+            throw new InvalidDataException( MISSING_PAYMENT_API_URL_ERROR );
         }
         String fullUrl = baseUrl + API_PAYMENT_PATH_STATUS.replace(API_PAYMENT_PATH_STATUS_TOKEN, paymentId);
 

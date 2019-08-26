@@ -1,12 +1,13 @@
-package com.payline.payment.natixis.bean.business.bank;
+package com.payline.payment.natixis.bean.business;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.payline.payment.natixis.bean.business.bank.Bank;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class AccountServiceProviders {
+public class NatixisBanksResponse {
 
     private List<Bank> accountServiceProviders;
 
@@ -22,8 +23,8 @@ public class AccountServiceProviders {
         return gson.toJson( this );
     }
 
-    public static AccountServiceProviders fromJson(String json ){
-        return new Gson().fromJson( json, AccountServiceProviders.class );
+    public static NatixisBanksResponse fromJson(String json ){
+        return new Gson().fromJson( json, NatixisBanksResponse.class );
     }
 
 }

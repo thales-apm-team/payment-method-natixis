@@ -3,7 +3,7 @@ package com.payline.payment.natixis.utils.http;
 import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.TestUtils;
 import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
-import com.payline.payment.natixis.bean.business.bank.AccountServiceProviders;
+import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
@@ -232,7 +232,7 @@ class NatixisHttpClientTest {
         doReturn( stringResponse ).when( spiedClient ).get( anyString(), any(RequestConfiguration.class) );
 
         // when: retrieving the banks list
-        AccountServiceProviders banks = spiedClient.banks( MockUtils.aRequestConfiguration() );
+        NatixisBanksResponse banks = spiedClient.banks( MockUtils.aRequestConfiguration() );
 
         // then: result contains 2 banks
         assertEquals( 2, banks.getList().size() );
