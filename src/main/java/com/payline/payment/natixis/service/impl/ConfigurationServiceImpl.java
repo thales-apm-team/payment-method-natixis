@@ -13,17 +13,13 @@ import com.payline.pmapi.bean.configuration.parameter.impl.ListBoxParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.PasswordParameter;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
 import com.payline.pmapi.bean.payment.ContractProperty;
-import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.ConfigurationService;
-import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class ConfigurationServiceImpl implements ConfigurationService {
-
-    private static final Logger LOGGER = LogManager.getLogger(ConfigurationServiceImpl.class);
 
     private static final class CategoryPurpose {
         private static final String CASH = "CASH";
