@@ -13,6 +13,18 @@ public class PluginUtils {
     /* Static utility class : no need to instantiate it (Sonar bug fix) */
     private PluginUtils(){}
 
+    public static String jsonMinify( String json ){
+        return json.trim()
+                // remove line breaks and tabulations
+                .replaceAll("[\\n\\r\\t]+\\s*", "")
+                // remove spaces around properties name/value colon separator
+                .replaceAll("\"\\s*:\\s*([{\\[\"]+)", "\":$1")
+                // remove spaces around properties separator
+                .replaceAll("([\"\\]}]+)\\s*,\\s*([\"\\[{]+)", "$1,$2")
+                // remove spaces between closing brackets
+                .replaceAll("([}\\]]+)\\s+([}\\]]+)", "$1$2");
+    }
+
     /**
      * Put an entry into the given map only if the given key and value are not null.
      *

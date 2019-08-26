@@ -12,6 +12,29 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 class PluginUtilsTest {
 
     @Test
+    void jsonMinify(){
+        // given: a JSON string, containing various forms of spaces and line breaks
+        String json = "{\n" +
+                "  \"property\" : \"value containing space\",\n" +
+                "  \"otherProperty\":  {\n" +
+                "\t\"stringChild\" : \"with comma,\",\n" +
+                "    \"array child\"    : [\n" +
+                "      \"element 1  \"  ,\r\n" +
+                "      \"element2\",\n" +
+                "        \"element   3\"\n" +
+                "    ]     \r\n" +
+                "  }\t\n" +
+                "}  ";
+
+        // when: minifying it
+        String result = PluginUtils.jsonMinify( json );
+
+        // then: result match the expected value
+        String expected = "{\"property\":\"value containing space\",\"otherProperty\":{\"stringChild\":\"with comma,\",\"array child\":[\"element 1  \",\"element2\",\"element   3\"]}}";
+        assertEquals( expected, result );
+    }
+
+    @Test
     void safePut_nominal(){
         // given: proper key and value
         Map<String, String> map = new HashMap<>();

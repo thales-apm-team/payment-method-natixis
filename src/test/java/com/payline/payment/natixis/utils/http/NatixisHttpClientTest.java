@@ -3,6 +3,7 @@ package com.payline.payment.natixis.utils.http;
 import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.TestUtils;
 import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
+import com.payline.payment.natixis.bean.business.bank.AccountServiceProviders;
 import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
@@ -221,6 +222,42 @@ class NatixisHttpClientTest {
         assertTrue( e.getErrorCode().contains("invalid_client") );
     }
 
+    // --- Test NatixisHttpClient#banks ---
+
+    @Test
+    void banks_nominal(){
+        // given: the partner API returns a valid response
+        String responseContent = "{\"accountServiceProviders\":[{\"id\":\"CCBPFRPPNAN\",\"bic\":\"CCBPFRPPNAN\",\"bankCode\":\"13807\",\"name\":\"BANQUE POPULAIRE GRAND OUEST\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"CMBRFR2BARK\",\"bic\":\"CMBRFR2BARK\",\"bankCode\":\"15589\",\"name\":\"Crédit Mutuel de Bretagne\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000}]}";
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_OK, "OK", responseContent, null );
+        doReturn( stringResponse ).when( spiedClient ).get( anyString(), any(RequestConfiguration.class) );
+
+        // when: retrieving the banks list
+        AccountServiceProviders banks = spiedClient.banks( MockUtils.aRequestConfiguration() );
+
+        // then: result contains 2 banks
+        assertEquals( 2, banks.getList().size() );
+    }
+
+    @Test
+    void banks_missingApiUrl(){
+        // given: the API base URL is missing from the partner configuration
+        RequestConfiguration requestConfiguration = new RequestConfiguration( MockUtils.aContractConfiguration(), MockUtils.anEnvironment(), new PartnerConfiguration( new HashMap<>(), new HashMap<>() ) );
+
+        // when calling the paymentStatus method, an exception is thrown
+        assertThrows(InvalidDataException.class, () -> natixisHttpClient.banks( requestConfiguration ));
+    }
+
+    @Test
+    void banks_parsingError(){
+        // given: the partner API returns a valid response
+        String responseContent = "[{\"id\":\"CCBPFRPPNAN\",\"bic\":\"CCBPFRPPNAN\",\"bankCode\":\"13807\",\"name\":\"BANQUE POPULAIRE GRAND OUEST\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"CMBRFR2BARK\",\"bic\":\"CMBRFR2BARK\",\"bankCode\":\"15589\",\"name\":\"Crédit Mutuel de Bretagne\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000}]";
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_OK, "OK", responseContent, null );
+        doReturn( stringResponse ).when( spiedClient ).get( anyString(), any(RequestConfiguration.class) );
+
+        // when: retrieving the banks list, then: an exception is thrown
+        assertThrows( PluginException.class, () -> spiedClient.banks( MockUtils.aRequestConfiguration() ) );
+    }
+
     // --- Test NatixisHttpClient#execute ---
 
     @Test
@@ -361,6 +398,52 @@ class NatixisHttpClientTest {
         assertThrows( PluginException.class, () ->  natixisHttpClient.generateSignature( httpRequest, headers, keyId, "(request-target)", "SomeHeader" ) );
     }
 
+    // --- Test NatixisHttpClient#get ---
+
+    @Test
+    void get_nominal(){
+        // given: the client is authorized, the method inputs are correct, the partner API returns a valid response
+        // mock authorize()
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        // mock generateSignature()
+        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
+        // mock execute()
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_OK, "OK", "some content", null );
+        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpGet.class) );
+
+        // when: calling the paymentStatus method
+        StringResponse response = spiedClient.get( "http://test.domain.com/service", MockUtils.aRequestConfiguration() );
+
+        // then: the response is returned as-is
+        assertEquals( stringResponse.getStatusCode(), response.getStatusCode() );
+        assertEquals( stringResponse.getContent(), response.getContent() );
+    }
+
+    @Test
+    void get_invalidUrl(){
+        // given: the client is authorized and the given URL is invalid
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        String url = "https:||np.api.qua.natixis.com/hub-pisp/v1/someEndpoint";
+
+        // when calling the get method, an exception is thrown
+        assertThrows(InvalidDataException.class, () -> spiedClient.get( url, MockUtils.aRequestConfiguration() ));
+    }
+
+    @Test
+    void get_error(){
+        // given: the client is authorized, the method inputs seem correct, but the partner API returns an error
+        // mock authorize()
+        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+        // mock generateSignature()
+        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
+        // mock execute()
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_NOT_FOUND, "Not Found", "{\"code\":\"404\",\"message\":\"Paiement recherché inexistant\"}", null);
+        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpPost.class) );
+
+        // when: calling the get method, then: an exception is thrown
+        assertThrows( PluginException.class, () -> spiedClient.get( "http://test.domaine.com/service", MockUtils.aRequestConfiguration() ) );
+    }
+
     // --- Test NatixisHttpClient#isAuthorized ---
 
     @Test
@@ -465,19 +548,14 @@ class NatixisHttpClientTest {
     void paymentStatus_nominal(){
         String paymentId = MockUtils.aPaymentId();
 
-        // given: the client is authorized, the method inputs are correct, the partner API returns a valid response
-        // mock authorize()
-        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
-        // mock generateSignature()
-        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
-        // mock execute()
+        // given: the partner API returns a valid response
         String responseContent = "{\"paymentRequest\":" +
                 MockUtils.aPaymentBuilder()
                         .withResourceId( paymentId )
                         .build() +
                 "}";
         StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_OK, "OK", responseContent, null );
-        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpGet.class) );
+        doReturn( stringResponse ).when( spiedClient ).get( anyString(), any(RequestConfiguration.class) );
 
         // when: calling the paymentStatus method
         Payment status = spiedClient.paymentStatus( paymentId, MockUtils.aRequestConfiguration() );
@@ -497,31 +575,19 @@ class NatixisHttpClientTest {
     }
 
     @Test
-    void paymentStatus_invalidApiUrl(){
-        // given: the client is authorized and the API base URL from the partner configuration in invalid
-        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
+    void paymentStatus_parsingError(){
+        String paymentId = MockUtils.aPaymentId();
 
-        Map<String, String> partnerConfigurationMap = new HashMap<>();
-        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https:||np.api.qua.natixis.com/hub-pisp/v1");
-        RequestConfiguration requestConfiguration = new RequestConfiguration( MockUtils.aContractConfiguration(), MockUtils.anEnvironment(), new PartnerConfiguration( partnerConfigurationMap, new HashMap<>() ) );
+        // given: the partner API returns a valid response
+        String responseContent = MockUtils.aPaymentBuilder()
+                .withResourceId( paymentId )
+                .build()
+                .toString();
+        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_OK, "OK", responseContent, null );
+        doReturn( stringResponse ).when( spiedClient ).get( anyString(), any(RequestConfiguration.class) );
 
-        // when calling the paymentStatus method, an exception is thrown
-        assertThrows(InvalidDataException.class, () -> spiedClient.paymentStatus( "1234567890", requestConfiguration ));
-    }
-
-    @Test
-    void paymentStatus_error(){
-        // given: the client is authorized, the method inputs seem correct, but the partner API returns an error
-        // mock authorize()
-        doReturn( MockUtils.anAuthorization() ).when( spiedClient ).authorize( any(RequestConfiguration.class) );
-        // mock generateSignature()
-        doReturn( MockUtils.aSignature() ).when( spiedClient ).generateSignature( any(HttpRequestBase.class), anyMap(), anyString(), ArgumentMatchers.<String>any() );
-        // mock execute()
-        StringResponse stringResponse = HttpTestUtils.mockStringResponse(HttpStatus.SC_NOT_FOUND, "Not Found", "{\"code\":\"404\",\"message\":\"Paiement recherché inexistant\"}", null);
-        doReturn( stringResponse ).when( spiedClient ).execute( any(HttpPost.class) );
-
-        // when: calling the paymentStatus method, then: an exception is thrown
-        assertThrows( PluginException.class, () -> spiedClient.paymentStatus( "1234567890", MockUtils.aRequestConfiguration() ) );
+        // when: calling the paymentStatus method
+        assertThrows( PluginException.class, () -> spiedClient.paymentStatus( paymentId, MockUtils.aRequestConfiguration() ) );
     }
 
     // --- Test NatixisHttpClient#psuHeaders ---
@@ -552,5 +618,9 @@ class NatixisHttpClientTest {
         // then: one header per non-null attribute
         assertEquals( 2, headers.size() );
     }
+
+    // --- Test NatixisHttpClient#sha256DigestHeader ---
+
+    // TODO
 
 }

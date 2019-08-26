@@ -8,6 +8,7 @@ import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.authorization.JwtUserBody;
 import com.payline.payment.natixis.bean.business.authorization.NatixisAuthorizationResponse;
 import com.payline.payment.natixis.bean.business.authorization.RFC6749AccessTokenErrorResponse;
+import com.payline.payment.natixis.bean.business.bank.AccountServiceProviders;
 import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
@@ -59,6 +60,7 @@ public class NatixisHttpClient {
     private static final Logger LOGGER = LogManager.getLogger(NatixisHttpClient.class);
 
     private static final String API_AUTH_PATH_OAUTH_TOKEN = "/oauth/token";
+    private static final String API_PAYMENT_PATH_BANK_LIST = "/accountServiceProviders";
     private static final String API_PAYMENT_PATH_INIT = "/payment-requests";
     private static final String API_PAYMENT_PATH_STATUS_TOKEN = "{paymentRequestResourceId}";
     private static final String API_PAYMENT_PATH_STATUS = "/payment-requests/" + API_PAYMENT_PATH_STATUS_TOKEN;
@@ -252,6 +254,29 @@ public class NatixisHttpClient {
     }
 
     /**
+     * Retrieve the list of banks/ASPSPs this partner is linked with.
+     *
+     * @param requestConfiguration the request configuration
+     */
+    public AccountServiceProviders banks( RequestConfiguration requestConfiguration ){
+        String baseUrl = requestConfiguration.getPartnerConfiguration().getProperty(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL);
+        if( baseUrl == null ){
+            throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
+        }
+
+        // Execute GET request
+        StringResponse response = this.get( baseUrl + API_PAYMENT_PATH_BANK_LIST, requestConfiguration );
+
+        // Handle result (error case has been handled, if needed, by get method)
+        try {
+            return AccountServiceProviders.fromJson( response.getContent() );
+        }
+        catch( RuntimeException e ){
+            throw new PluginException("Plugin error: unable to parse bank list", e);
+        }
+    }
+
+    /**
      * Initialize a payment.
      *
      * @param requestBody the payment initiation request body
@@ -325,17 +350,51 @@ public class NatixisHttpClient {
         if( baseUrl == null ){
             throw new InvalidDataException("Missing payment API base url in partnerConfiguration");
         }
+        String fullUrl = baseUrl + API_PAYMENT_PATH_STATUS.replace(API_PAYMENT_PATH_STATUS_TOKEN, paymentId);
 
+        // Execute GET request
+        StringResponse response = this.get( fullUrl, requestConfiguration );
+
+        // Handle status (error case has been handled by get method)
+        try {
+            JsonObject paymentRequest = new JsonParser().parse(response.getContent()).getAsJsonObject()
+                    .getAsJsonObject("paymentRequest");
+            return Payment.fromJson( paymentRequest.toString() );
+        }
+        catch( RuntimeException e ){
+            throw new PluginException("Plugin error: unable to parse status response", e);
+        }
+    }
+
+    /**
+     * Check if there is a current valid authorization.
+     * @return `true` if the current authorization is valid, `false` otherwise.
+     */
+    boolean isAuthorized(){
+        return this.authorization != null
+                && this.authorization.getExpiresAt().compareTo( new Date() ) > 0;
+        /* Warning: the token can be valid at the time this method is called but not anymore 1 second later...
+        Maybe add some time (5 minutes ?) to the current time, to be sure. */
+    }
+
+    /**
+     * Build and execute a GET request to the given URL.
+     *
+     * @param url the URL to call
+     * @param requestConfiguration the request configuration
+     * @return the StringResponse obtained.
+     */
+    StringResponse get( String url, RequestConfiguration requestConfiguration ){
         // Authorization
         Authorization auth = this.authorize( requestConfiguration );
 
         // Init request
         URI uri;
         try {
-            uri = new URI( baseUrl + API_PAYMENT_PATH_STATUS.replace(API_PAYMENT_PATH_STATUS_TOKEN, paymentId) );
+            uri = new URI( url );
         }
         catch (URISyntaxException e) {
-            throw new InvalidDataException("Payment API URL is invalid", e);
+            throw new InvalidDataException("Service URL is invalid", e);
         }
         HttpGet httpGet = new HttpGet( uri );
 
@@ -360,19 +419,7 @@ public class NatixisHttpClient {
             throw this.handleErrorResponse( response );
         }
 
-        // Handle status
-        return this.handleStatusResponse( response );
-    }
-
-    /**
-     * Check if there is a current valid authorization.
-     * @return `true` if the current authorization is valid, `false` otherwise.
-     */
-    boolean isAuthorized(){
-        return this.authorization != null
-                && this.authorization.getExpiresAt().compareTo( new Date() ) > 0;
-        /* Warning: the token can be valid at the time this method is called but not anymore 1 second later...
-        Maybe add some time (5 minutes ?) to the current time, to be sure. */
+        return response;
     }
 
     /**
@@ -509,23 +556,6 @@ public class NatixisHttpClient {
     }
 
     /**
-     * Handle status responses with the specified format (see API specification).
-     *
-     * @param response The response received, converted as {@link StringResponse}
-     * @return The response content converted as a {@link Payment}
-     */
-    Payment handleStatusResponse( StringResponse response ){
-        try {
-            JsonObject paymentRequest = new JsonParser().parse(response.getContent()).getAsJsonObject()
-                    .getAsJsonObject("paymentRequest");
-            return Payment.fromJson( paymentRequest.toString() );
-        }
-        catch( RuntimeException e ){
-            throw new PluginException("Plugin error: unable to parse status response", e);
-        }
-    }
-
-    /**
      * Build PSU headers from a {@link PsuInformation} instance.
      *
      * @param psuInformation The object containing PSU information
@@ -562,9 +592,7 @@ public class NatixisHttpClient {
      * @return the digest header
      */
     String sha256DigestHeader( String jsonContent ){
-        String digestBody = jsonContent.replaceAll("[\\n\\r]+[ ]*", "")
-                .replace(": ", ":")
-                .replace(", ", ",");
+        String digestBody = PluginUtils.jsonMinify( jsonContent );
         byte[] digest;
         try {
             digest = MessageDigest.getInstance("SHA-256").digest( digestBody.getBytes() );
