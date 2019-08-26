@@ -31,6 +31,7 @@ public class Constants {
 
         public static final String API_AUTH_BASE_URL = "apiAuthBaseUrl";
         public static final String API_PAYMENT_BASE_URL  = "apiPaymentBaseUrl";
+        public static final String BANKS_LIST = "banks";
         public static final String CLIENT_CERTIFICATE = "clientCertificate";
         public static final String CLIENT_PRIVATE_KEY = "clientPrivateKey";
         public static final String SIGNATURE_KEYID = "signatureKeyId";

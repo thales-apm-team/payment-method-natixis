@@ -16,6 +16,8 @@ import com.payline.pmapi.bean.payment.Environment;
 import com.payline.pmapi.bean.payment.Order;
 import com.payline.pmapi.bean.payment.PaymentFormContext;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
+import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
+import com.payline.pmapi.bean.payment.request.TransactionStatusRequest;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import org.tomitribe.auth.signatures.Algorithm;
 import org.tomitribe.auth.signatures.Signature;
@@ -190,6 +192,9 @@ public class MockUtils {
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL, "https://np-auth.api.qua.natixis.com/api");
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
+
+        String banks = "{\"accountServiceProviders\":[{\"id\":\"CCBPFRPPNAN\",\"bic\":\"CCBPFRPPNAN\",\"bankCode\":\"13807\",\"name\":\"BANQUE POPULAIRE GRAND OUEST\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"CMBRFR2BARK\",\"bic\":\"CMBRFR2BARK\",\"bankCode\":\"15589\",\"name\":\"Crédit Mutuel de Bretagne\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000},{\"id\":\"CEPAFRPP313\",\"bic\":\"CEPAFRPP313\",\"bankCode\":\"13135\",\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000},{\"id\":\"BLUXLULLXXX\",\"bic\":\"BLUXLULLXXX\",\"bankCode\":\"008\",\"name\":\"BANQUE DE LUXEMBOURG\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"SOGEFRPPXXX\",\"bic\":\"SOGEFRPPXXX\",\"bankCode\":\"30003\",\"name\":\"Société Générale\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"GPBAFRPPXXX\",\"bic\":\"GPBAFRPPXXX\",\"bankCode\":\"18370\",\"name\":\"ORANGE BANK\",\"serviceLevel\":null,\"localInstrument\":null,\"maxAmount\":null}]}";
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.BANKS_LIST, banks);
 
         Map<String, String> sensitiveConfigurationMap = new HashMap<>();
         sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, aClientCertificatePem() );
@@ -469,6 +474,22 @@ public class MockUtils {
     }
 
     /**
+     * Generate a valid {@link RedirectionPaymentRequest}.
+     */
+    public static RedirectionPaymentRequest aRedirectionPaymentRequest(){
+        return RedirectionPaymentRequest.builder()
+                .withAmount( aPaylineAmount() )
+                .withBrowser( aBrowser() )
+                .withBuyer( aBuyer() )
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withOrder( anOrder() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withTransactionId( aTransactionId() )
+                .build();
+    }
+
+    /**
      * Generate a valid {@link RequestConfiguration}.
      */
     public static RequestConfiguration aRequestConfiguration(){
@@ -489,6 +510,28 @@ public class MockUtils {
         }
 
         return signature;
+    }
+
+    /**
+     * @return a valid transaction ID.
+     */
+    public static String aTransactionId(){
+        return "123456789012345678901";
+    }
+
+    /**
+     * Generate a valid {@link TransactionStatusRequest}.
+     */
+    public static TransactionStatusRequest aTransactionStatusRequest(){
+        return TransactionStatusRequest.TransactionStatusRequestBuilder.aNotificationRequest()
+                .withAmount( aPaylineAmount() )
+                .withBuyer( aBuyer() )
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withOrder( anOrder() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withTransactionId( aTransactionId() )
+                .build();
     }
 
     /**

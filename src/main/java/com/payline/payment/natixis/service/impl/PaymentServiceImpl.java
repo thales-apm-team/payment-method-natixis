@@ -11,6 +11,7 @@ import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.properties.ConfigProperties;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
+import com.payline.pmapi.bean.payment.RequestContext;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
@@ -22,7 +23,9 @@ import org.apache.logging.log4j.Logger;
 import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 import static com.payline.payment.natixis.utils.Constants.PaymentFormContextKeys.DEBTOR_BIC;
 
@@ -122,14 +125,24 @@ public class PaymentServiceImpl implements PaymentService {
             // Initiate the payment
             NatixisPaymentInitResponse response = natixisHttpClient.paymentInit( payment, psuInformation, requestConfiguration );
 
-            // Build PaymentResponseRedirect
+            // URL
             PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder redirectionRequestBuilder = PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder.aRedirectionRequest()
                     .withUrl( response.getContentApprovalUrl() );
 
+            // request context
+            Map<String, String> requestData = new HashMap<>();
+            requestData.put("paymentId", response.getPaymentId());
+            RequestContext requestContext = RequestContext.RequestContextBuilder.aRequestContext()
+                    .withRequestData( requestData )
+                    .withSensitiveRequestData( new HashMap<>() )
+                    .build();
+
+            // Build PaymentResponse
             paymentResponse = PaymentResponseRedirect.PaymentResponseRedirectBuilder.aPaymentResponseRedirect()
                     .withPartnerTransactionId( response.getPaymentId() )
                     .withStatusCode( response.getStatusCode() )
                     .withRedirectionRequest( new PaymentResponseRedirect.RedirectionRequest( redirectionRequestBuilder ) )
+                    .withRequestContext( requestContext )
                     .build();
         }
         catch( PluginException e ){
