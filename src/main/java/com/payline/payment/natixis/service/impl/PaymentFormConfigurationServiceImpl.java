@@ -1,5 +1,7 @@
 package com.payline.payment.natixis.service.impl;
 
+import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
+import com.payline.payment.natixis.bean.business.bank.Bank;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
 import com.payline.payment.natixis.utils.Constants;
@@ -19,6 +21,8 @@ import org.apache.logging.log4j.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.payline.payment.natixis.utils.Constants.PartnerConfigurationKeys.BANKS_LIST;
+
 public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigurationService {
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentFormConfigurationServiceImpl.class);
@@ -27,6 +31,11 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
     public PaymentFormConfigurationResponse getPaymentFormConfiguration(PaymentFormConfigurationRequest paymentFormConfigurationRequest) {
         PaymentFormConfigurationResponse pfcResponse;
         try {
+            // Retrieve banks list from partner configuration
+            String serialized = paymentFormConfigurationRequest.getPartnerConfiguration().getProperty( BANKS_LIST );
+            List<Bank> banks = NatixisBanksResponse.fromJson( serialized ).getList();
+
+            // Temporary text input field for BIC
             PaymentFormInputFieldText tmpBicInput = PaymentFormInputFieldText.PaymentFormFieldTextBuilder
                     .aPaymentFormFieldText()
                     .withKey( Constants.PaymentFormContextKeys.DEBTOR_BIC )
@@ -38,6 +47,7 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
             List<PaymentFormField> fields = new ArrayList<>();
             fields.add( tmpBicInput );
 
+            // Build form
             // TODO: use BankTransferForm instead of CustomForm
             CustomForm form = CustomForm.builder()
                     .withButtonText("Payer avec Natixis")
