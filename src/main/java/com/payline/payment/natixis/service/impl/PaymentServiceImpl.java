@@ -131,7 +131,7 @@ public class PaymentServiceImpl implements PaymentService {
 
             // request context
             Map<String, String> requestData = new HashMap<>();
-            requestData.put("paymentId", response.getPaymentId());
+            requestData.put(Constants.RequestContextKeys.PAYMENT_ID, response.getPaymentId());
             RequestContext requestContext = RequestContext.RequestContextBuilder.aRequestContext()
                     .withRequestData( requestData )
                     .withSensitiveRequestData( new HashMap<>() )
