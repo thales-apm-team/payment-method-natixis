@@ -25,11 +25,21 @@ public class CreditTransferTransactionInformation {
      * intended to settle, such as commercial invoices in an accounts' receivable system.
      */
     private List<String> remittanceInformation;
+    /**
+     * Specifies the status of the payment information group.
+     */
+    private String transactionStatus;
+    /**
+     * Provides detailed information on the status reason.
+     */
+    private String statusReasonInformation;
 
     private CreditTransferTransactionInformation(CreditTransferTransactionInformationBuilder builder) {
         this.paymentIdentification = builder.paymentIdentification;
         this.instructedAmount = builder.instructedAmount;
         this.remittanceInformation = builder.remittanceInformation;
+        this.transactionStatus = builder.transactionStatus;
+        this.statusReasonInformation = builder.statusReasonInformation;
     }
 
     public PaymentIdentification getPaymentIdentification() {
@@ -44,11 +54,21 @@ public class CreditTransferTransactionInformation {
         return remittanceInformation;
     }
 
+    public String getTransactionStatus() {
+        return transactionStatus;
+    }
+
+    public String getStatusReasonInformation() {
+        return statusReasonInformation;
+    }
+
     public static class CreditTransferTransactionInformationBuilder {
 
         private PaymentIdentification paymentIdentification;
         private Amount instructedAmount;
         private List<String> remittanceInformation;
+        private String transactionStatus;
+        private String statusReasonInformation;
 
         public CreditTransferTransactionInformationBuilder withPaymentIdentification(PaymentIdentification paymentIdentification) {
             this.paymentIdentification = paymentIdentification;
@@ -65,6 +85,16 @@ public class CreditTransferTransactionInformation {
                 this.remittanceInformation = new ArrayList<>();
             }
             this.remittanceInformation.add(remittanceInformation);
+            return this;
+        }
+
+        public CreditTransferTransactionInformationBuilder withTransactionStatus(String transactionStatus) {
+            this.transactionStatus = transactionStatus;
+            return this;
+        }
+
+        public CreditTransferTransactionInformationBuilder withStatusReasonInformation(String statusReasonInformation) {
+            this.statusReasonInformation = statusReasonInformation;
             return this;
         }
 
