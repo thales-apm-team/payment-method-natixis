@@ -9,6 +9,8 @@ import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
 import com.payline.pmapi.bean.payment.request.TransactionStatusRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
+import com.payline.pmapi.bean.payment.response.buyerpaymentidentifier.BankAccount;
+import com.payline.pmapi.bean.payment.response.buyerpaymentidentifier.impl.BankTransfer;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseOnHold;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseSuccess;
@@ -96,10 +98,63 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
                 // Success
                 case "ACSP":
                 case "ACSC":
+                    // pre-fill a builder for the owner BankAccount with empty strings (null values not authorized)
+                    BankAccount.BankAccountBuilder ownerBuilder = BankAccount.BankAccountBuilder.aBankAccount()
+                            .withHolder("")
+                            .withAccountNumber("")
+                            .withIban("")
+                            .withBic("")
+                            .withCountryCode("")
+                            .withBankName("")
+                            .withBankCode("");
+                    // Fill available data in the owner BankAccount
+                    if( payment.getDebtor() != null ){
+                        if( payment.getDebtor().getName() != null ) {
+                            ownerBuilder.withHolder(payment.getDebtor().getName());
+                        }
+                        if( payment.getDebtor().getPostalAddress() != null
+                                && payment.getDebtor().getPostalAddress().getCountry() != null ){
+                            ownerBuilder.withCountryCode( payment.getDebtor().getPostalAddress().getCountry() );
+                        }
+                    }
+                    if( payment.getDebtorAccount() != null
+                            && payment.getDebtorAccount().getIban() != null ){
+                        ownerBuilder.withIban( payment.getDebtorAccount().getIban() );
+                    }
+                    if( payment.getDebtorAgent() != null
+                            && payment.getDebtorAgent().getBicFi() != null ){
+                        ownerBuilder.withBic( payment.getDebtorAgent().getBicFi() );
+                    }
+
+                    // pre-fill a builder for the receiver BankAccount with empty strings (null values not authorized)
+                    BankAccount.BankAccountBuilder receiverBuilder = BankAccount.BankAccountBuilder.aBankAccount()
+                            .withHolder("")
+                            .withAccountNumber("")
+                            .withIban("")
+                            .withBic("")
+                            .withCountryCode("")
+                            .withBankName("")
+                            .withBankCode("");
+                    // Fill available data in the receiver BankAccount
+                    if( payment.getBeneficiary() != null ){
+                        if( payment.getBeneficiary().getCreditor() != null
+                                && payment.getBeneficiary().getCreditor().getName() != null ){
+                            receiverBuilder.withHolder( payment.getBeneficiary().getCreditor().getName() );
+                        }
+                        if( payment.getBeneficiary().getCreditorAccount() != null
+                                && payment.getBeneficiary().getCreditorAccount().getIban() != null ){
+                            receiverBuilder.withIban( payment.getBeneficiary().getCreditorAccount().getIban() );
+                        }
+                        if( payment.getBeneficiary().getCreditorAgent() != null
+                                && payment.getBeneficiary().getCreditorAgent().getBicFi() != null ){
+                            receiverBuilder.withBic( payment.getBeneficiary().getCreditorAgent().getBicFi() );
+                        }
+                    }
+
                     paymentResponse = PaymentResponseSuccess.PaymentResponseSuccessBuilder.aPaymentResponseSuccess()
                             .withPartnerTransactionId( paymentId )
                             .withStatusCode( transactionStatus )
-                            // TODO...
+                            .withTransactionDetails( new BankTransfer( ownerBuilder.build(), receiverBuilder.build() ) )
                             .build();
                     break;
                 // Pending
