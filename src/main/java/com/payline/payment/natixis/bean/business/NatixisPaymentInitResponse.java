@@ -47,12 +47,12 @@ public class NatixisPaymentInitResponse {
         if( locationHeader == null ){
             throw new PluginException("Plugin error: no 'Location' header in response", FailureCause.PARTNER_UNKNOWN_ERROR);
         }
-        Pattern p = Pattern.compile("[a-z0-9-]+$");
+        Pattern p = Pattern.compile("/([a-z0-9-]+)$");
         Matcher m = p.matcher( locationHeader );
         if( !m.find() ){
             throw new PluginException("Plugin error: unable to extract paymentId");
         }
-        String paymentId = m.group(0);
+        String paymentId = m.group(1);
 
         // Extract consent approval URL from the response JSON body
         URL contentApprovalUrl;
