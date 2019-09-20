@@ -6,6 +6,7 @@ import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.pmapi.bean.common.FailureCause;
+import com.payline.pmapi.bean.common.OnHoldCause;
 import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
 import com.payline.pmapi.bean.payment.request.TransactionStatusRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
@@ -96,7 +97,6 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
 
             switch( transactionStatus ){
                 // Success
-                case "ACSP":
                 case "ACSC":
                     // pre-fill a builder for the owner BankAccount with empty strings (null values not authorized)
                     BankAccount.BankAccountBuilder ownerBuilder = BankAccount.BankAccountBuilder.aBankAccount()
@@ -158,10 +158,11 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
                             .build();
                     break;
                 // Pending
+                case "ACSP":
                 case "PDNG":
                     paymentResponse = PaymentResponseOnHold.PaymentResponseOnHoldBuilder.aPaymentResponseOnHold()
                             .withPartnerTransactionId( paymentId )
-                            .withOnHoldCause( null ) // TODO
+                            .withOnHoldCause( OnHoldCause.SCORING_ASYNC )
                             .withStatusCode( transactionStatus )
                             .build();
                     break;
