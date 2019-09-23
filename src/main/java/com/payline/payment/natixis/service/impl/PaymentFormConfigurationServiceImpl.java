@@ -4,12 +4,10 @@ import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.bank.Bank;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
-import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.pmapi.bean.common.FailureCause;
-import com.payline.pmapi.bean.paymentform.bean.field.FieldIcon;
-import com.payline.pmapi.bean.paymentform.bean.field.InputType;
-import com.payline.pmapi.bean.paymentform.bean.field.PaymentFormField;
-import com.payline.pmapi.bean.paymentform.bean.field.PaymentFormInputFieldText;
+import com.payline.pmapi.bean.paymentform.bean.field.SelectOption;
+import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
 import com.payline.pmapi.bean.paymentform.bean.form.CustomForm;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormConfigurationRequest;
 import com.payline.pmapi.bean.paymentform.response.configuration.PaymentFormConfigurationResponse;
@@ -20,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import static com.payline.payment.natixis.utils.Constants.PartnerConfigurationKeys.BANKS_LIST;
 
@@ -27,33 +26,29 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentFormConfigurationServiceImpl.class);
 
+    private I18nService i18n = I18nService.getInstance();
+
     @Override
     public PaymentFormConfigurationResponse getPaymentFormConfiguration(PaymentFormConfigurationRequest paymentFormConfigurationRequest) {
         PaymentFormConfigurationResponse pfcResponse;
         try {
+            Locale locale = paymentFormConfigurationRequest.getLocale();
+
             // Retrieve banks list from partner configuration
+            // TODO: replace with PluginConfiguration !
             String serialized = paymentFormConfigurationRequest.getPartnerConfiguration().getProperty( BANKS_LIST );
-            List<Bank> banks = NatixisBanksResponse.fromJson( serialized ).getList();
-
-            // Temporary text input field for BIC
-            PaymentFormInputFieldText tmpBicInput = PaymentFormInputFieldText.PaymentFormFieldTextBuilder
-                    .aPaymentFormFieldText()
-                    .withKey( Constants.PaymentFormContextKeys.DEBTOR_BIC )
-                    .withLabel( "BIC" )
-                    .withInputType( InputType.TEXT )
-                    .withFieldIcon( FieldIcon.MONEY )
-                    .build();
-
-            List<PaymentFormField> fields = new ArrayList<>();
-            fields.add( tmpBicInput );
+            final List<SelectOption> banks = new ArrayList<>();
+            for( Bank bank : NatixisBanksResponse.fromJson( serialized ).getList() ){
+                banks.add(SelectOption.SelectOptionBuilder.aSelectOption().withKey(bank.getBic()).withValue(bank.getName()).build());
+            }
 
             // Build form
-            // TODO: use BankTransferForm instead of CustomForm
-            CustomForm form = CustomForm.builder()
-                    .withButtonText("Payer avec Natixis")
+            CustomForm form = BankTransferForm.builder()
+                    .withBanks( banks )
+                    .withDescription( i18n.getMessage( "paymentForm.description", locale ) )
                     .withDisplayButton(true)
-                    .withCustomFields( fields )
-                    .withDescription("TODO")
+                    .withButtonText( i18n.getMessage( "paymentForm.buttonText", locale ) )
+                    .withCustomFields( new ArrayList<>() )
                     .build();
 
             pfcResponse = PaymentFormConfigurationResponseSpecific.PaymentFormConfigurationResponseSpecificBuilder

@@ -254,7 +254,6 @@ public class Payment {
         }
 
         public Payment build(){
-            // TODO: add controls ?
             return new Payment( this );
         }
     }
