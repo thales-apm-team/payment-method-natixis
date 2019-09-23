@@ -98,63 +98,13 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
             switch( transactionStatus ){
                 // Success
                 case "ACSC":
-                    // pre-fill a builder for the owner BankAccount with empty strings (null values not authorized)
-                    BankAccount.BankAccountBuilder ownerBuilder = BankAccount.BankAccountBuilder.aBankAccount()
-                            .withHolder("")
-                            .withAccountNumber("")
-                            .withIban("")
-                            .withBic("")
-                            .withCountryCode("")
-                            .withBankName("")
-                            .withBankCode("");
-                    // Fill available data in the owner BankAccount
-                    if( payment.getDebtor() != null ){
-                        if( payment.getDebtor().getName() != null ) {
-                            ownerBuilder.withHolder(payment.getDebtor().getName());
-                        }
-                        if( payment.getDebtor().getPostalAddress() != null
-                                && payment.getDebtor().getPostalAddress().getCountry() != null ){
-                            ownerBuilder.withCountryCode( payment.getDebtor().getPostalAddress().getCountry() );
-                        }
-                    }
-                    if( payment.getDebtorAccount() != null
-                            && payment.getDebtorAccount().getIban() != null ){
-                        ownerBuilder.withIban( payment.getDebtorAccount().getIban() );
-                    }
-                    if( payment.getDebtorAgent() != null
-                            && payment.getDebtorAgent().getBicFi() != null ){
-                        ownerBuilder.withBic( payment.getDebtorAgent().getBicFi() );
-                    }
-
-                    // pre-fill a builder for the receiver BankAccount with empty strings (null values not authorized)
-                    BankAccount.BankAccountBuilder receiverBuilder = BankAccount.BankAccountBuilder.aBankAccount()
-                            .withHolder("")
-                            .withAccountNumber("")
-                            .withIban("")
-                            .withBic("")
-                            .withCountryCode("")
-                            .withBankName("")
-                            .withBankCode("");
-                    // Fill available data in the receiver BankAccount
-                    if( payment.getBeneficiary() != null ){
-                        if( payment.getBeneficiary().getCreditor() != null
-                                && payment.getBeneficiary().getCreditor().getName() != null ){
-                            receiverBuilder.withHolder( payment.getBeneficiary().getCreditor().getName() );
-                        }
-                        if( payment.getBeneficiary().getCreditorAccount() != null
-                                && payment.getBeneficiary().getCreditorAccount().getIban() != null ){
-                            receiverBuilder.withIban( payment.getBeneficiary().getCreditorAccount().getIban() );
-                        }
-                        if( payment.getBeneficiary().getCreditorAgent() != null
-                                && payment.getBeneficiary().getCreditorAgent().getBicFi() != null ){
-                            receiverBuilder.withBic( payment.getBeneficiary().getCreditorAgent().getBicFi() );
-                        }
-                    }
+                    BankAccount owner = this.getOwnerBankAcconut( payment );
+                    BankAccount receiver = this.getReceiverBankAccount( payment );
 
                     paymentResponse = PaymentResponseSuccess.PaymentResponseSuccessBuilder.aPaymentResponseSuccess()
                             .withPartnerTransactionId( paymentId )
                             .withStatusCode( transactionStatus )
-                            .withTransactionDetails( new BankTransfer( ownerBuilder.build(), receiverBuilder.build() ) )
+                            .withTransactionDetails( new BankTransfer( owner, receiver ) )
                             .build();
                     break;
                 // Pending
@@ -191,6 +141,81 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
         }
 
         return paymentResponse;
+    }
+
+    /**
+     * Extract the owner bank account data from the given payment.
+     *
+     * @param payment the payment data
+     * @return the owner bank account
+     */
+    BankAccount getOwnerBankAcconut( Payment payment ){
+        // pre-fill a builder with empty strings (null values not authorized)
+        BankAccount.BankAccountBuilder ownerBuilder = BankAccount.BankAccountBuilder.aBankAccount()
+                .withHolder("")
+                .withAccountNumber("")
+                .withIban("")
+                .withBic("")
+                .withCountryCode("")
+                .withBankName("")
+                .withBankCode("");
+
+        // Fill available data
+        if( payment.getDebtor() != null ){
+            if( payment.getDebtor().getName() != null ) {
+                ownerBuilder.withHolder(payment.getDebtor().getName());
+            }
+            if( payment.getDebtor().getPostalAddress() != null
+                    && payment.getDebtor().getPostalAddress().getCountry() != null ){
+                ownerBuilder.withCountryCode( payment.getDebtor().getPostalAddress().getCountry() );
+            }
+        }
+        if( payment.getDebtorAccount() != null
+                && payment.getDebtorAccount().getIban() != null ){
+            ownerBuilder.withIban( payment.getDebtorAccount().getIban() );
+        }
+        if( payment.getDebtorAgent() != null
+                && payment.getDebtorAgent().getBicFi() != null ){
+            ownerBuilder.withBic( payment.getDebtorAgent().getBicFi() );
+        }
+
+        return ownerBuilder.build();
+    }
+
+    /**
+     * Extract the receiver bank account from the given payment.
+     *
+     * @param payment the payment data
+     * @return the receiver bank account
+     */
+    BankAccount getReceiverBankAccount( Payment payment ){
+        // pre-fill a builder fwith empty strings (null values not authorized)
+        BankAccount.BankAccountBuilder receiverBuilder = BankAccount.BankAccountBuilder.aBankAccount()
+                .withHolder("")
+                .withAccountNumber("")
+                .withIban("")
+                .withBic("")
+                .withCountryCode("")
+                .withBankName("")
+                .withBankCode("");
+
+        // Fill available data
+        if( payment.getBeneficiary() != null ){
+            if( payment.getBeneficiary().getCreditor() != null
+                    && payment.getBeneficiary().getCreditor().getName() != null ){
+                receiverBuilder.withHolder( payment.getBeneficiary().getCreditor().getName() );
+            }
+            if( payment.getBeneficiary().getCreditorAccount() != null
+                    && payment.getBeneficiary().getCreditorAccount().getIban() != null ){
+                receiverBuilder.withIban( payment.getBeneficiary().getCreditorAccount().getIban() );
+            }
+            if( payment.getBeneficiary().getCreditorAgent() != null
+                    && payment.getBeneficiary().getCreditorAgent().getBicFi() != null ){
+                receiverBuilder.withBic( payment.getBeneficiary().getCreditorAgent().getBicFi() );
+            }
+        }
+
+        return receiverBuilder.build();
     }
 
     /**
