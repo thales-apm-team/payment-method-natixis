@@ -1,10 +1,15 @@
 package com.payline.payment.natixis.utils;
 
+import com.payline.pmapi.bean.common.FailureCause;
 import org.apache.http.client.methods.HttpGet;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -32,6 +37,42 @@ class PluginUtilsTest {
         // then: result match the expected value
         String expected = "{\"property\":\"value containing space\",\"otherProperty\":{\"stringChild\":\"with comma,\",\"array child\":[\"element 1  \",\"element2\",\"element   3\"]}}";
         assertEquals( expected, result );
+    }
+
+    @ParameterizedTest
+    @MethodSource("replaceCharsSet")
+    void replaceChars( String input, String expectedOutput ){
+        assertEquals( expectedOutput, PluginUtils.replaceChars( input ) );
+    }
+    private static Stream<Arguments> replaceCharsSet() {
+        return Stream.of(
+                Arguments.of( "àâäçèéêëïîôöùû", "aaaceeeeiioouu" ),
+                Arguments.of( "æÆ", "aeAE" ),
+                Arguments.of( "œŒ", "oeOE" ),
+                Arguments.of( "ÀÂÄÇÈÉÊËÏÎÔÖÙÛ", "AAACEEEEIIOOUU" ),
+                Arguments.of( "l'apostrophe", "l apostrophe" ),
+                Arguments.of( "/-?:().,\"+ ", "/-?:().,\"+ " ),
+                Arguments.of( "", "" ),
+                Arguments.of( null, null )
+        );
+    }
+
+    @Test
+    void requestToString(){
+        // given: a HTTP request with headers
+        HttpGet request = new HttpGet( "http://domain.test.fr/endpoint" );
+        request.setHeader("Authorization", "Basic sensitiveStringThatShouldNotAppear");
+        request.setHeader("Other", "This is safe to display");
+
+        // when: converting the request to String for display
+        String result = PluginUtils.requestToString( request );
+
+        // then: the result is as expected
+        String ln = System.lineSeparator();
+        String expected = "GET http://domain.test.fr/endpoint" + ln
+                + "Authorization: Basic *****" + ln
+                + "Other: This is safe to display";
+        assertEquals(expected, result);
     }
 
     @Test
@@ -75,24 +116,6 @@ class PluginUtilsTest {
 
         // then: no entry is added to the map
         assertEquals( 0, map.size() );
-    }
-
-    @Test
-    void requestToString(){
-        // given: a HTTP request with headers
-        HttpGet request = new HttpGet( "http://domain.test.fr/endpoint" );
-        request.setHeader("Authorization", "Basic sensitiveStringThatShouldNotAppear");
-        request.setHeader("Other", "This is safe to display");
-
-        // when: converting the request to String for display
-        String result = PluginUtils.requestToString( request );
-
-        // then: the result is as expected
-        String ln = System.lineSeparator();
-        String expected = "GET http://domain.test.fr/endpoint" + ln
-                + "Authorization: Basic *****" + ln
-                + "Other: This is safe to display";
-        assertEquals(expected, result);
     }
 
     @Test

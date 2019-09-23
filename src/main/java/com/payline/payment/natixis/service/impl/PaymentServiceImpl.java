@@ -7,8 +7,10 @@ import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.properties.ConfigProperties;
+import com.payline.pmapi.bean.common.Buyer;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.RequestContext;
@@ -55,18 +57,31 @@ public class PaymentServiceImpl implements PaymentService {
             } else if( paymentRequest.getAmount().getCurrency() == null ){
                 throw new InvalidDataException("paymentRequest.amount.currency is required");
             }
-            String debtorName = null;
-            if( paymentRequest.getBuyer() != null && paymentRequest.getBuyer().getFullName() != null ){
-                debtorName = paymentRequest.getBuyer().getFullName().toString();
-            }
-            String reference = paymentRequest.getOrder() != null ? paymentRequest.getOrder().getReference() : null;
-            String debtorBic;
             if( paymentRequest.getPaymentFormContext() == null
                     || paymentRequest.getPaymentFormContext().getPaymentFormParameter() == null
                     || paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC ) == null ){
                 throw new InvalidDataException("debtor BIC is required in payment form context");
             }
-            debtorBic = paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC );
+
+            // Extract data from PaymentRequest
+            String debtorName = null;
+            if( paymentRequest.getBuyer() != null && paymentRequest.getBuyer().getFullName() != null ){
+                debtorName = PluginUtils.replaceChars( paymentRequest.getBuyer().getFullName().toString() );
+            }
+            String reference = paymentRequest.getOrder() != null ? paymentRequest.getOrder().getReference() : null;
+            String debtorBic = paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC ); // TODO: change !
+
+            PostalAddress debtorPostalAddress = null;
+            if( paymentRequest.getBuyer() != null
+                    && paymentRequest.getBuyer().getAddresses() != null
+                    && paymentRequest.getBuyer().getAddresses().get(Buyer.AddressType.BILLING) != null ){
+                Buyer.Address address = paymentRequest.getBuyer().getAddresses().get(Buyer.AddressType.BILLING);
+                PostalAddress.PostalAddressBuilder builder = new PostalAddress.PostalAddressBuilder();
+                builder.withCountry( address.getCountry() );
+                builder.addAddressLine( PluginUtils.replaceChars(address.getStreet1() + " " + address.getStreet2()) );
+                builder.addAddressLine( PluginUtils.replaceChars(address.getZipCode() + " " + address.getCity()) );
+                debtorPostalAddress = builder.build();
+            }
 
             // Build Payment from PaymentRequest
             Payment payment = new Payment.PaymentBuilder()
@@ -83,11 +98,12 @@ public class PaymentServiceImpl implements PaymentService {
                             .build() )
                     .withDebtor( new PartyIdentification.PartyIdentificationBuilder()
                             .withName( debtorName )
+                            .withPostalAddress( debtorPostalAddress )
                             .build() )
                     .withDebtorAgent( new FinancialInstitutionIdentification( debtorBic ) )
                     .withBeneficiary( new Beneficiary.BeneficiaryBuilder()
                             .withCreditor( new PartyIdentification.PartyIdentificationBuilder()
-                                    .withName( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_NAME ).getValue() )
+                                    .withName( PluginUtils.replaceChars( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_NAME ).getValue() ) )
                                     .build()
                             )
                             .withCreditorAccount( new AccountIdentification.AccountIdentificationBuilder()

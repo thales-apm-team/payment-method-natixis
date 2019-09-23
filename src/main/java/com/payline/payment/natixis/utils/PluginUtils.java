@@ -4,6 +4,7 @@ import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpRequestBase;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -26,16 +27,30 @@ public class PluginUtils {
     }
 
     /**
-     * Put an entry into the given map only if the given key and value are not null.
+     * Replace all accentuated characters in the given string by their non-accentuated form.
+     * Replace also every character not supported by the partner API (see below) by a space or "?".
      *
-     * @param map The map
-     * @param key The wanted key for the new entry
-     * @param value The wanted value for the new entry
+     * Supported characters :
+     * - letters (upper or lower cases)
+     * - numbers
+     * - spaces
+     * - special characters / - ? : ( ) . , ‟ +
+     *
+     * @param input the string to process
+     * @return the string with only supported characters
      */
-    public static void safePut(Map<String, String> map, String key, String value ){
-        if( key != null && value != null ){
-            map.put( key, value );
+    public static String replaceChars( String input ){
+        if( input == null ){
+            return null;
         }
+        input = input.replace("'", " ")
+                .replace("æ", "ae")
+                .replace("Æ", "AE")
+                .replace("œ", "oe")
+                .replace("Œ", "OE");
+        input = Normalizer.normalize(input, Normalizer.Form.NFD);
+        input = input.replaceAll("[\\p{InCombiningDiacriticalMarks}]", "");
+        return input;
     }
 
     /**
@@ -63,6 +78,19 @@ public class PluginUtils {
         str += String.join(ln, strHeaders);
 
         return str;
+    }
+
+    /**
+     * Put an entry into the given map only if the given key and value are not null.
+     *
+     * @param map The map
+     * @param key The wanted key for the new entry
+     * @param value The wanted value for the new entry
+     */
+    public static void safePut(Map<String, String> map, String key, String value ){
+        if( key != null && value != null ){
+            map.put( key, value );
+        }
     }
 
     /**
