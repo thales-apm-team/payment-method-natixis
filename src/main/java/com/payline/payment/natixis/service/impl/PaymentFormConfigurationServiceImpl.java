@@ -26,8 +26,6 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentFormConfigurationServiceImpl.class);
 
-    private I18nService i18n = I18nService.getInstance();
-
     @Override
     public PaymentFormConfigurationResponse getPaymentFormConfiguration(PaymentFormConfigurationRequest paymentFormConfigurationRequest) {
         PaymentFormConfigurationResponse pfcResponse;
