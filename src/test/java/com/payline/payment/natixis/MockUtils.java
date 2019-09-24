@@ -9,15 +9,11 @@ import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.common.Buyer;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
-import com.payline.pmapi.bean.payment.Browser;
-import com.payline.pmapi.bean.payment.ContractConfiguration;
-import com.payline.pmapi.bean.payment.ContractProperty;
-import com.payline.pmapi.bean.payment.Environment;
-import com.payline.pmapi.bean.payment.Order;
-import com.payline.pmapi.bean.payment.PaymentFormContext;
+import com.payline.pmapi.bean.payment.*;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
 import com.payline.pmapi.bean.payment.request.TransactionStatusRequest;
+import com.payline.pmapi.bean.paymentform.request.PaymentFormConfigurationRequest;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import org.tomitribe.auth.signatures.Algorithm;
 import org.tomitribe.auth.signatures.Signature;
@@ -204,6 +200,7 @@ public class MockUtils {
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
 
+        // TODO: remove !
         String banks = "{\"accountServiceProviders\":[{\"id\":\"CCBPFRPPNAN\",\"bic\":\"CCBPFRPPNAN\",\"bankCode\":\"13807\",\"name\":\"BANQUE POPULAIRE GRAND OUEST\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"CMBRFR2BARK\",\"bic\":\"CMBRFR2BARK\",\"bankCode\":\"15589\",\"name\":\"Crédit Mutuel de Bretagne\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000},{\"id\":\"CEPAFRPP313\",\"bic\":\"CEPAFRPP313\",\"bankCode\":\"13135\",\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000},{\"id\":\"BLUXLULLXXX\",\"bic\":\"BLUXLULLXXX\",\"bankCode\":\"008\",\"name\":\"BANQUE DE LUXEMBOURG\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"SOGEFRPPXXX\",\"bic\":\"SOGEFRPPXXX\",\"bankCode\":\"30003\",\"name\":\"Société Générale\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"GPBAFRPPXXX\",\"bic\":\"GPBAFRPPXXX\",\"bankCode\":\"18370\",\"name\":\"ORANGE BANK\",\"serviceLevel\":null,\"localInstrument\":null,\"maxAmount\":null}]}";
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.BANKS_LIST, banks);
 
@@ -347,6 +344,21 @@ public class MockUtils {
         return PaymentFormContext.PaymentFormContextBuilder.aPaymentFormContext()
                 .withPaymentFormParameter( paymentFormParameter )
                 .withSensitivePaymentFormParameter( new HashMap<>() )
+                .build();
+    }
+
+    /**
+     * Generate a valid {@link PaymentFormConfigurationRequest}.
+     */
+    public static PaymentFormConfigurationRequest aPaymentFormConfigurationRequest(){
+        return PaymentFormConfigurationRequest.PaymentFormConfigurationRequestBuilder.aPaymentFormConfigurationRequest()
+                .withAmount( aPaylineAmount() )
+                .withBuyer( aBuyer() )
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withLocale( Locale.getDefault() )
+                .withOrder( anOrder() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
                 .build();
     }
 

@@ -4,7 +4,6 @@ import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.bank.Bank;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
-import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.paymentform.bean.field.SelectOption;
 import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
@@ -32,8 +31,8 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
         try {
             Locale locale = paymentFormConfigurationRequest.getLocale();
 
+            // TODO: replace with PluginConfiguration ! (in the comment too)
             // Retrieve banks list from partner configuration
-            // TODO: replace with PluginConfiguration !
             String serialized = paymentFormConfigurationRequest.getPartnerConfiguration().getProperty( BANKS_LIST );
             final List<SelectOption> banks = new ArrayList<>();
             for( Bank bank : NatixisBanksResponse.fromJson( serialized ).getList() ){
