@@ -1,6 +1,7 @@
 package com.payline.payment.natixis.service.impl;
 
 import com.payline.payment.natixis.MockUtils;
+import com.payline.payment.natixis.TestUtils;
 import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.Payment;
@@ -28,7 +29,6 @@ import java.net.URL;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -77,7 +77,7 @@ class PaymentServiceImplTest {
 
         // then: the payment response is a success
         assertEquals( PaymentResponseRedirect.class, paymentResponse.getClass() );
-        assertNotNull( ((PaymentResponseRedirect)paymentResponse).getPartnerTransactionId() );
+        TestUtils.checkPaymentResponse( (PaymentResponseRedirect) paymentResponse );
     }
 
     @Test
@@ -93,6 +93,7 @@ class PaymentServiceImplTest {
 
         // then: exception is caught and the payment response is a failure
         assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
+        TestUtils.checkPaymentResponse( (PaymentResponseFailure) paymentResponse );
     }
 
     @Test
@@ -108,6 +109,7 @@ class PaymentServiceImplTest {
 
         // then: exception is caught and the payment response is a failure
         assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
+        TestUtils.checkPaymentResponse( (PaymentResponseFailure) paymentResponse );
     }
 
     @Test
@@ -123,5 +125,6 @@ class PaymentServiceImplTest {
 
         // then: exception is caught and the payment response is a failure
         assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
+        TestUtils.checkPaymentResponse( (PaymentResponseFailure) paymentResponse );
     }
 }

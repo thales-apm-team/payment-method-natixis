@@ -2,7 +2,6 @@ package com.payline.payment.natixis.service.impl;
 
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
-import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.pmapi.bean.common.FailureCause;
@@ -19,8 +18,6 @@ import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.PaymentWithRedirectionService;
 import org.apache.logging.log4j.Logger;
 
-import static com.payline.payment.natixis.utils.Constants.RequestContextKeys.PAYMENT_ID;
-
 public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirectionService {
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentWithRedirectionServiceImpl.class);
@@ -35,16 +32,8 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
             // Build request configuration
             RequestConfiguration requestConfiguration = RequestConfiguration.build( redirectionPaymentRequest );
 
-            // Retrieve payment ID from request context
-            if( redirectionPaymentRequest.getRequestContext() == null
-                    || redirectionPaymentRequest.getRequestContext().getRequestData() == null
-                    || redirectionPaymentRequest.getRequestContext().getRequestData().get(PAYMENT_ID) == null ){
-                throw new InvalidDataException("Missing payment ID from request context");
-            }
-            String paymentId = redirectionPaymentRequest.getRequestContext().getRequestData().get(PAYMENT_ID);
-
             // Update transaction state
-            paymentResponse = this.updateTransactionState( paymentId, requestConfiguration );
+            paymentResponse = this.updateTransactionState( redirectionPaymentRequest.getTransactionId(), requestConfiguration );
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();
@@ -62,9 +51,7 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
             RequestConfiguration requestConfiguration = RequestConfiguration.build( transactionStatusRequest );
 
             // Update transaction state
-            // TODO: find a way to recover the payment ID from here !
-
-            paymentResponse = null;
+            paymentResponse = this.updateTransactionState( transactionStatusRequest.getTransactionId(), requestConfiguration );
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();
@@ -228,6 +215,11 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
     PaymentResponseFailure.PaymentResponseFailureBuilder mapRejectReason( String statusReasonInformation ){
         PaymentResponseFailure.PaymentResponseFailureBuilder builder = PaymentResponseFailure.PaymentResponseFailureBuilder
                 .aPaymentResponseFailure();
+
+        if( statusReasonInformation == null ){
+            return builder.withErrorCode("Missing StatusReasonInformation" )
+                    .withFailureCause( FailureCause.PARTNER_UNKNOWN_ERROR );
+        }
 
         switch( statusReasonInformation ){
             case "AC01":

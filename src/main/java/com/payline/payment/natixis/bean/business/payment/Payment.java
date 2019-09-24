@@ -244,7 +244,18 @@ public class Payment {
             if( this.creditTransferTransactionInformation == null ){
                 this.creditTransferTransactionInformation = new ArrayList<>();
             }
+            if( creditTransferTransactionInformation != null ){
+                this.creditTransferTransactionInformation.add( creditTransferTransactionInformation );
+            }
             this.creditTransferTransactionInformation.add( creditTransferTransactionInformation );
+            return this;
+        }
+
+        public PaymentBuilder withCreditTransferTransactionInformation(CreditTransferTransactionInformation creditTransferTransactionInformation) {
+            this.creditTransferTransactionInformation = new ArrayList<>();
+            if( creditTransferTransactionInformation != null ){
+                this.creditTransferTransactionInformation.add( creditTransferTransactionInformation );
+            }
             return this;
         }
 

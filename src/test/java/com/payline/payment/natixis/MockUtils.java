@@ -163,6 +163,17 @@ public class MockUtils {
                 .withPartnerConfiguration( aPartnerConfiguration() );
     }
 
+    public static CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder aCreditTransferTransactionInformationBuilder( String uid ){
+        return new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
+                .withInstructedAmount( new Amount.AmountBuilder()
+                        .withAmount("150")
+                        .withCurrency("EUR")
+                        .build()
+                )
+                .withPaymentIdentification( new PaymentIdentification( uid, uid ))
+                .addRemittanceInformation( "REF123456" );
+    }
+
     /**
      * Generate a valid {@link Environment}.
      */
@@ -250,8 +261,7 @@ public class MockUtils {
      * This way, some attributes may be overridden to match specific test needs.
      */
     public static Payment.PaymentBuilder aPaymentBuilder(){
-        SimpleDateFormat timestampDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        String uid = "MONEXT" +  timestampDateFormat.format(new Date());
+        String uid = aUniqueIdentifier();
 
         return new Payment.PaymentBuilder()
                 .withPaymentInformationIdentification( uid )
@@ -280,7 +290,7 @@ public class MockUtils {
                         .withPostalAddress( new PostalAddress.PostalAddressBuilder()
                                 .withCountry("FR")
                                 .addAddressLine("25 rue de la petite taverne")
-                                .addAddressLine("74120 Megève")
+                                .addAddressLine("74120 Megeve")
                                 .build()
                         )
                         .withPrivateId( new Identification.IdentificationBuilder()
@@ -296,7 +306,7 @@ public class MockUtils {
                                 .withName("TEST IP 13135")
                                 .withPostalAddress( new PostalAddress.PostalAddressBuilder()
                                         .withCountry("FR")
-                                        .addAddressLine("8 rue pavée d'andouilles")
+                                        .addAddressLine("8 rue pavee d'andouilles")
                                         .addAddressLine("71460 Saint-Gengoux-le-national")
                                         .build()
                                 )
@@ -312,16 +322,7 @@ public class MockUtils {
                 .withPurpose("COMC")
                 .withChargeBearer("SLEV")
                 .withRequestedExecutionDate( addTime( new Date(), Calendar.DATE, 1 ) )
-                .addCreditTransferTransactionInformation( new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
-                        .withInstructedAmount( new Amount.AmountBuilder()
-                                .withAmount("150")
-                                .withCurrency("EUR")
-                                .build()
-                        )
-                        .withPaymentIdentification( new PaymentIdentification( uid, uid ))
-                        .addRemittanceInformation( "Argent de poche" )
-                        .build()
-                )
+                .addCreditTransferTransactionInformation( aCreditTransferTransactionInformationBuilder( uid ).build() )
                 .withSupplementaryData( new SupplementaryData.SupplementaryDataBuilder()
                         .withSuccessfulReportUrl("https://www.successful.fr")
                         .withUnsuccessfulReportUrl("https://www.unsuccessful.fr")
@@ -532,6 +533,13 @@ public class MockUtils {
                 .withPartnerConfiguration( aPartnerConfiguration() )
                 .withTransactionId( aTransactionId() )
                 .build();
+    }
+
+    /**
+     * Generate a unique identifier that matches the API expectations.
+     */
+    public static String aUniqueIdentifier(){
+        return "MONEXT" +  new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
     }
 
     /**
