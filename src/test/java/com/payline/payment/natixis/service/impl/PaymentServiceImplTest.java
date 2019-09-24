@@ -26,12 +26,14 @@ import org.mockito.MockitoAnnotations;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeastOnce;
 
 class PaymentServiceImplTest {
 
@@ -94,6 +96,10 @@ class PaymentServiceImplTest {
         // then: exception is caught and the payment response is a failure
         assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
         TestUtils.checkPaymentResponse( (PaymentResponseFailure) paymentResponse );
+
+        // verify that mocks have been called (to prevent false positive due to a RuntimeException)
+        verify( natixisHttpClient, times(1) )
+                .paymentInit( any(Payment.class), any(PsuInformation.class), any(RequestConfiguration.class) );
     }
 
     @Test
@@ -110,6 +116,9 @@ class PaymentServiceImplTest {
         // then: exception is caught and the payment response is a failure
         assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
         TestUtils.checkPaymentResponse( (PaymentResponseFailure) paymentResponse );
+
+        // verify that mocks have been called (to prevent false positive due to a RuntimeException)
+        verify( natixisHttpClient, times(1) ).init( any(PartnerConfiguration.class) );
     }
 
     @Test
@@ -126,5 +135,8 @@ class PaymentServiceImplTest {
         // then: exception is caught and the payment response is a failure
         assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
         TestUtils.checkPaymentResponse( (PaymentResponseFailure) paymentResponse );
+
+        // verify that mocks have been called (to prevent false positive due to a RuntimeException)
+        verify( natixisHttpClient, times(1) ).init( any(PartnerConfiguration.class) );
     }
 }

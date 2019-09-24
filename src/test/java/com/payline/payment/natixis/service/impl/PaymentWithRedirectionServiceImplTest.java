@@ -27,8 +27,8 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.times;
 
 public class PaymentWithRedirectionServiceImplTest {
 
@@ -57,6 +57,9 @@ public class PaymentWithRedirectionServiceImplTest {
         // then: the response is a failure
         assertEquals( PaymentResponseFailure.class, response.getClass() );
         TestUtils.checkPaymentResponse( (PaymentResponseFailure) response );
+
+        // verify that mock has been called (to prevent false positive due to a RuntimeException)
+        verify( natixisHttpClient, times(1) ).init( any(PartnerConfiguration.class) );
     }
 
     @Test
@@ -72,6 +75,9 @@ public class PaymentWithRedirectionServiceImplTest {
         // then: the response is a failure
         assertEquals( PaymentResponseFailure.class, response.getClass() );
         TestUtils.checkPaymentResponse( (PaymentResponseFailure) response );
+
+        // verify that mock has been called (to prevent false positive due to a RuntimeException)
+        verify( natixisHttpClient, times(1) ).paymentStatus( anyString(), any(RequestConfiguration.class));
     }
 
     @Test
@@ -90,6 +96,9 @@ public class PaymentWithRedirectionServiceImplTest {
         // then: the response is a failure
         assertEquals( PaymentResponseFailure.class, response.getClass() );
         TestUtils.checkPaymentResponse( (PaymentResponseFailure) response );
+
+        // verify that mock has been called (to prevent false positive due to a RuntimeException)
+        verify( natixisHttpClient, times(1) ).paymentStatus( anyString(), any(RequestConfiguration.class));
     }
 
     @ParameterizedTest
@@ -111,6 +120,9 @@ public class PaymentWithRedirectionServiceImplTest {
             TestUtils.checkPaymentResponse( (PaymentResponseOnHold) response );
         } else {
             TestUtils.checkPaymentResponse( (PaymentResponseFailure) response );
+
+            // verify that mock has been called (to prevent false positive due to a RuntimeException)
+            verify( natixisHttpClient, times(1) ).paymentStatus( anyString(), any(RequestConfiguration.class));
         }
     }
     static Stream<Arguments> statusMappingSet(){
