@@ -29,11 +29,12 @@ compileJava.options.encoding = 'UTF-8'
 
 ext {
     paymentMethodApiVersion = '1.4'
-    paymentMethodIntegrationVersion = '1.4'
+    //paymentMethodIntegrationVersion = '1.4'
 }
 
 dependencies {
     compile group:'com.payline', name: 'payment-method-api', version: "$paymentMethodApiVersion"
+    //testImplementation group: 'com.payline', name: 'payment-method-integration', version: "$paymentMethodIntegrationVersion"
 
     implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.0'
     implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.0'
@@ -44,6 +45,9 @@ dependencies {
     testImplementation group: 'org.mockito', name: 'mockito-core', version: '3.0.0'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.5.0'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-params', version: '5.5.0'
+    testImplementation group: 'org.seleniumhq.selenium', name: 'selenium-server', version: '3.141.59'
+    testImplementation group: 'org.seleniumhq.selenium', name: 'selenium-support', version: '3.141.59'
+
     testRuntime group: 'commons-lang', name: 'commons-lang', version: '2.6' // Required by Buyer.FullName#toString
 }
 
