@@ -10,6 +10,7 @@ import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
@@ -469,7 +470,7 @@ class NatixisHttpClientTest {
     void isAuthorized_expired() throws NoSuchFieldException {
         // given: an expired authorization
         Authorization expiredAuth = MockUtils.anAuthorizationBuilder()
-                .withExpiresAt(TestUtils.addTime(new Date(), Calendar.HOUR, -1))
+                .withExpiresAt(PluginUtils.addTime(new Date(), Calendar.HOUR, -1))
                 .build();
         FieldSetter.setField( natixisHttpClient, natixisHttpClient.getClass().getDeclaredField("authorization"), expiredAuth);
 

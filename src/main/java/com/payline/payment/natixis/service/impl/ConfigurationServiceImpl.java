@@ -65,6 +65,14 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         creditorName.setRequired( true );
         parameters.add( creditorName );
 
+        // creditorBic
+        InputParameter creditorBic = new InputParameter();
+        creditorBic.setKey( Constants.ContractConfigurationKeys.CREDITOR_BIC );
+        creditorBic.setLabel( i18n.getMessage("contract.creditorBic.label", locale) );
+        creditorBic.setDescription( i18n.getMessage("contract.creditorBic.description", locale) );
+        creditorBic.setRequired( true );
+        parameters.add( creditorBic );
+
         // creditorIban
         InputParameter creditorIban = new InputParameter();
         creditorIban.setKey( Constants.ContractConfigurationKeys.CREDITOR_IBAN );

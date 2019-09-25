@@ -247,7 +247,6 @@ public class Payment {
             if( creditTransferTransactionInformation != null ){
                 this.creditTransferTransactionInformation.add( creditTransferTransactionInformation );
             }
-            this.creditTransferTransactionInformation.add( creditTransferTransactionInformation );
             return this;
         }
 

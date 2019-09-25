@@ -12,22 +12,21 @@ import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.properties.ConfigProperties;
 import com.payline.pmapi.bean.common.Buyer;
 import com.payline.pmapi.bean.common.FailureCause;
+import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.RequestContext;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseRedirect;
+import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
 import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.PaymentService;
 import org.apache.logging.log4j.Logger;
 
 import java.math.BigInteger;
 import java.text.NumberFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static com.payline.payment.natixis.utils.Constants.PaymentFormContextKeys.DEBTOR_BIC;
 
@@ -43,8 +42,6 @@ public class PaymentServiceImpl implements PaymentService {
         PaymentResponse paymentResponse;
 
         try {
-            RequestConfiguration requestConfiguration = RequestConfiguration.build( paymentRequest );
-
             // Init HTTP client
             natixisHttpClient.init( paymentRequest.getPartnerConfiguration() );
 
@@ -59,7 +56,7 @@ public class PaymentServiceImpl implements PaymentService {
             }
             if( paymentRequest.getPaymentFormContext() == null
                     || paymentRequest.getPaymentFormContext().getPaymentFormParameter() == null
-                    || paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC ) == null ){
+                    || paymentRequest.getPaymentFormContext().getPaymentFormParameter().get(BankTransferForm.BANK_KEY) == null ){
                 throw new InvalidDataException("debtor BIC is required in payment form context");
             }
 
@@ -69,7 +66,7 @@ public class PaymentServiceImpl implements PaymentService {
                 debtorName = PluginUtils.replaceChars( paymentRequest.getBuyer().getFullName().toString() );
             }
             String reference = paymentRequest.getOrder() != null ? paymentRequest.getOrder().getReference() : null;
-            String debtorBic = paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( DEBTOR_BIC ); // TODO: change !
+            String debtorBic = paymentRequest.getPaymentFormContext().getPaymentFormParameter().get( BankTransferForm.BANK_KEY );
 
             PostalAddress debtorPostalAddress = null;
             if( paymentRequest.getBuyer() != null
@@ -84,9 +81,10 @@ public class PaymentServiceImpl implements PaymentService {
             }
 
             // Build Payment from PaymentRequest
+            Date now = new Date();
             Payment payment = new Payment.PaymentBuilder()
                     .withPaymentInformationIdentification( paymentRequest.getTransactionId() )
-                    .withCreationDateTime( new Date() )
+                    .withCreationDateTime( now )
                     .withNumberOfTransactions( 1 )
                     .withInitiatingParty( new PartyIdentification.PartyIdentificationBuilder()
                             .withName( config.get("payment.initiatingParty.name") )
@@ -110,11 +108,12 @@ public class PaymentServiceImpl implements PaymentService {
                                     .withIban( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_IBAN ).getValue() )
                                     .build()
                             )
+                            .withCreditorAgent( new FinancialInstitutionIdentification( contract.getProperty(Constants.ContractConfigurationKeys.CREDITOR_BIC ).getValue() ))
                             .build()
                     )
                     .withPurpose( contract.getProperty(Constants.ContractConfigurationKeys.PURPOSE ).getValue() )
                     .withChargeBearer( contract.getProperty(Constants.ContractConfigurationKeys.CHARGE_BEARER ).getValue() )
-                    .withRequestedExecutionDate( paymentRequest.getDifferedActionDate() )
+                    .withRequestedExecutionDate( paymentRequest.getDifferedActionDate() == null ? PluginUtils.addTime( now, Calendar.MINUTE, 1 ) : paymentRequest.getDifferedActionDate() )
                     .addCreditTransferTransactionInformation( new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
                             .withInstructedAmount( new Amount.AmountBuilder()
                                     .withAmount( this.formatAmount( paymentRequest.getAmount().getAmountInSmallestUnit() ) )
@@ -139,7 +138,7 @@ public class PaymentServiceImpl implements PaymentService {
                     .build();
 
             // Initiate the payment
-            NatixisPaymentInitResponse response = natixisHttpClient.paymentInit( payment, psuInformation, requestConfiguration );
+            NatixisPaymentInitResponse response = natixisHttpClient.paymentInit( payment, psuInformation, RequestConfiguration.build( paymentRequest ) );
 
             // URL
             PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder redirectionRequestBuilder = PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder.aRedirectionRequest()

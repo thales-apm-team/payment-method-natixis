@@ -14,6 +14,7 @@ public class Constants {
         public static final String CHARGE_BEARER = "chargeBearer";
         public static final String CLIENT_ID = "clientId";
         public static final String CLIENT_SECRET = "clientSecret";
+        public static final String CREDITOR_BIC = "creditorBic";
         public static final String CREDITOR_IBAN = "creditorIban";
         public static final String CREDITOR_NAME = "creditorName";
         public static final String LOCAL_INSTRUMENT = "localInstrument";
@@ -45,7 +46,7 @@ public class Constants {
      */
     public static class PaymentFormContextKeys {
 
-        public static final String DEBTOR_BIC = "debtorBic";
+        public static final String DEBTOR_BIC = "debtorBic"; // TODO: remove
 
         /* Static utility class : no need to instantiate it (Sonar bug fix) */
         private PaymentFormContextKeys(){}

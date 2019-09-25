@@ -4,6 +4,7 @@ import com.payline.payment.natixis.bean.business.fraud.PsuInformation;
 import com.payline.payment.natixis.bean.business.payment.*;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.http.Authorization;
 import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.common.Buyer;
@@ -13,6 +14,7 @@ import com.payline.pmapi.bean.payment.*;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
 import com.payline.pmapi.bean.payment.request.TransactionStatusRequest;
+import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormConfigurationRequest;
 import com.payline.pmapi.bean.paymentform.request.PaymentFormLogoRequest;
 import org.tomitribe.auth.signatures.Algorithm;
@@ -26,8 +28,6 @@ import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
 import java.text.SimpleDateFormat;
 import java.util.*;
-
-import static com.payline.payment.natixis.TestUtils.addTime;
 
 /**
  * Utility class that generates mocks of frequently used objects.
@@ -70,7 +70,7 @@ public class MockUtils {
         return new Authorization.AuthorizationBuilder()
                 .withAccessToken("ABCD1234567890")
                 .withTokenType("Bearer")
-                .withExpiresAt( addTime(new Date(), Calendar.HOUR, 1) );
+                .withExpiresAt( PluginUtils.addTime(new Date(), Calendar.HOUR, 1) );
     }
 
     /**
@@ -130,6 +130,7 @@ public class MockUtils {
         contractProperties.put(Constants.ContractConfigurationKeys.CHARGE_BEARER, new ContractProperty( "SLEV" ));
         contractProperties.put(Constants.ContractConfigurationKeys.CLIENT_ID, new ContractProperty( UUID.randomUUID().toString() ));
         contractProperties.put(Constants.ContractConfigurationKeys.CLIENT_SECRET, new ContractProperty( UUID.randomUUID().toString() ));
+        contractProperties.put(Constants.ContractConfigurationKeys.CREDITOR_BIC, new ContractProperty( "CEPAFRPP313" ));
         contractProperties.put(Constants.ContractConfigurationKeys.CREDITOR_IBAN, new ContractProperty( "FR7630001007941234567890185" ));
         contractProperties.put(Constants.ContractConfigurationKeys.CREDITOR_NAME, new ContractProperty( "Jean Martin" ));
         contractProperties.put(Constants.ContractConfigurationKeys.LOCAL_INSTRUMENT, new ContractProperty( "INST" ));
@@ -242,7 +243,7 @@ public class MockUtils {
                 .withBuyer( aBuyer() )
                 .withLocale( Locale.getDefault() )
                 .withPaymentFormContext( aPaymentFormContext() )
-                .withDifferedActionDate( TestUtils.addTime( new Date(), Calendar.DATE, 5) )
+                .withDifferedActionDate( PluginUtils.addTime( new Date(), Calendar.DATE, 5) )
                 .withCaptureNow( true );
     }
 
@@ -266,6 +267,7 @@ public class MockUtils {
                 .withNumberOfTransactions( 1 )
                 .withInitiatingParty( new PartyIdentification.PartyIdentificationBuilder()
                         .withName("NATIXIS PAYMENT SOLUTIONS")
+                        /*
                         .withPostalAddress( new PostalAddress.PostalAddressBuilder()
                                 .addAddressLine("30 AVENUE PIERRE MENDES FRANCE")
                                 .addAddressLine("75013 PARIS")
@@ -276,6 +278,7 @@ public class MockUtils {
                                 .withSchemeName("COID")
                                 .withIssuer("ACPR")
                                 .build() )
+                         */
                         .build() )
                 .withPaymentTypeInformation( new PaymentTypeInformation.PaymentTypeInformationBuilder()
                         .withServiceLevel("SEPA")
@@ -284,6 +287,7 @@ public class MockUtils {
                         .build() )
                 .withDebtor( new PartyIdentification.PartyIdentificationBuilder()
                         .withName("Gaby Gallet Fourcade")
+                        /*
                         .withPostalAddress( new PostalAddress.PostalAddressBuilder()
                                 .withCountry("FR")
                                 .addAddressLine("25 rue de la petite taverne")
@@ -296,17 +300,20 @@ public class MockUtils {
                                 .withIssuer("SOGEFRPPXXX")
                                 .build()
                         )
+                        */
                         .build() )
                 .withDebtorAgent( new FinancialInstitutionIdentification( "SOGEFRPPXXX" ) )
                 .withBeneficiary( new Beneficiary.BeneficiaryBuilder()
                         .withCreditor( new PartyIdentification.PartyIdentificationBuilder()
                                 .withName("TEST IP 13135")
+                                /*
                                 .withPostalAddress( new PostalAddress.PostalAddressBuilder()
                                         .withCountry("FR")
                                         .addAddressLine("8 rue pavee d'andouilles")
                                         .addAddressLine("71460 Saint-Gengoux-le-national")
                                         .build()
                                 )
+                                */
                                 .build()
                         )
                         .withCreditorAccount( new AccountIdentification.AccountIdentificationBuilder()
@@ -318,7 +325,7 @@ public class MockUtils {
                 )
                 .withPurpose("COMC")
                 .withChargeBearer("SLEV")
-                .withRequestedExecutionDate( addTime( new Date(), Calendar.DATE, 1 ) )
+                .withRequestedExecutionDate( PluginUtils.addTime( new Date(), Calendar.DATE, 1 ) )
                 .addCreditTransferTransactionInformation( aCreditTransferTransactionInformationBuilder( uid ).build() )
                 .withSupplementaryData( new SupplementaryData.SupplementaryDataBuilder()
                         .withSuccessfulReportUrl("https://www.successful.fr")
@@ -339,7 +346,7 @@ public class MockUtils {
      */
     public static PaymentFormContext aPaymentFormContext(){
         Map<String, String> paymentFormParameter = new HashMap<>();
-        paymentFormParameter.put( Constants.PaymentFormContextKeys.DEBTOR_BIC, "CMBRFR2BARK" );
+        paymentFormParameter.put( BankTransferForm.BANK_KEY, "CMBRFR2BARK" );
 
         return PaymentFormContext.PaymentFormContextBuilder.aPaymentFormContext()
                 .withPaymentFormParameter( paymentFormParameter )

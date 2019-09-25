@@ -29,11 +29,8 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
         PaymentResponse paymentResponse;
 
         try {
-            // Build request configuration
-            RequestConfiguration requestConfiguration = RequestConfiguration.build( redirectionPaymentRequest );
-
             // Update transaction state
-            paymentResponse = this.updateTransactionState( redirectionPaymentRequest.getTransactionId(), requestConfiguration );
+            paymentResponse = this.updateTransactionState( redirectionPaymentRequest.getTransactionId(), RequestConfiguration.build( redirectionPaymentRequest ) );
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();
@@ -47,11 +44,8 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
         PaymentResponse paymentResponse;
 
         try {
-            // Build request configuration
-            RequestConfiguration requestConfiguration = RequestConfiguration.build( transactionStatusRequest );
-
             // Update transaction state
-            paymentResponse = this.updateTransactionState( transactionStatusRequest.getTransactionId(), requestConfiguration );
+            paymentResponse = this.updateTransactionState( transactionStatusRequest.getTransactionId(), RequestConfiguration.build( transactionStatusRequest ) );
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();

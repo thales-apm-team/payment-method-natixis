@@ -5,14 +5,27 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.HttpRequestBase;
 
 import java.text.Normalizer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class PluginUtils {
 
     /* Static utility class : no need to instantiate it (Sonar bug fix) */
     private PluginUtils(){}
+
+    /**
+     * Add a amount of time to the given date.
+     *
+     * @param to the date
+     * @param field the type of time unit to add (see {@link Calendar} constants)
+     * @param n The number of this time unit to add. Can be negative.
+     * @return the new date
+     */
+    public static Date addTime(Date to, int field, int n ){
+        Calendar cal = Calendar.getInstance();
+        cal.setTime( to );
+        cal.add(field, n);
+        return cal.getTime();
+    }
 
     public static String jsonMinify( String json ){
         return json.trim()

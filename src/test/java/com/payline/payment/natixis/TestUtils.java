@@ -14,13 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUtils {
 
-    public static Date addTime(Date to, int field, int days ){
-        Calendar cal = Calendar.getInstance();
-        cal.setTime( to );
-        cal.add(field, days);
-        return cal.getTime();
-    }
-
     /**
      * Return the current timestamp, without milliseconds.
      */
