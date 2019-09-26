@@ -28,8 +28,6 @@ import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.util.*;
 
-import static com.payline.payment.natixis.utils.Constants.PaymentFormContextKeys.DEBTOR_BIC;
-
 public class PaymentServiceImpl implements PaymentService {
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentServiceImpl.class);

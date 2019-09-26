@@ -478,10 +478,6 @@ class NatixisHttpClientTest {
         assertFalse( natixisHttpClient.isAuthorized() );
     }
 
-    // --- Test NatixisHttpClient#handleErrorResponse ---
-
-    // TODO
-
     // --- Test NatixisHttpClient#paymentInit ---
 
     @Test
@@ -619,9 +615,5 @@ class NatixisHttpClientTest {
         // then: one header per non-null attribute
         assertEquals( 2, headers.size() );
     }
-
-    // --- Test NatixisHttpClient#sha256DigestHeader ---
-
-    // TODO
 
 }

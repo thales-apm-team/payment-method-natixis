@@ -42,17 +42,6 @@ public class Constants {
     }
 
     /**
-     * Keys for the fields in the payment form (PaymentFormParameter map).
-     */
-    public static class PaymentFormContextKeys {
-
-        public static final String DEBTOR_BIC = "debtorBic"; // TODO: remove
-
-        /* Static utility class : no need to instantiate it (Sonar bug fix) */
-        private PaymentFormContextKeys(){}
-    }
-
-    /**
      * Keys for the entries in RequestContext data.
      */
     public static class RequestContextKeys {

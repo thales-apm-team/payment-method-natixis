@@ -135,14 +135,6 @@ public class PaymentWithRedirectionServiceImplTest {
         );
     }
 
-    void getOwnerBankAcconut(){
-        // TODO
-    }
-
-    void getReceiverBankAccount(){
-        // TODO
-    }
-
 
     private Payment mockStatusReturn( String transactionStatus ){
         String uid = MockUtils.aUniqueIdentifier();
