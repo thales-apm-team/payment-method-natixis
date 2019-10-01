@@ -163,7 +163,7 @@ public class MockUtils {
     public static CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder aCreditTransferTransactionInformationBuilder( String uid ){
         return new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
                 .withInstructedAmount( new Amount.AmountBuilder()
-                        .withAmount("150")
+                        .withAmount("1000")
                         .withCurrency("EUR")
                         .build()
                 )

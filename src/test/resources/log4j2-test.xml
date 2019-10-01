@@ -7,7 +7,7 @@
         </Console>
     </Appenders>
     <Loggers>
-        <Logger name="com.payline.payment.natixis.utils.http" level="INFO" />
+        <Logger name="com.payline.payment.natixis.utils.http" level="DEBUG" />
         <Root level="INFO">
             <AppenderRef ref="console" />
         </Root>
