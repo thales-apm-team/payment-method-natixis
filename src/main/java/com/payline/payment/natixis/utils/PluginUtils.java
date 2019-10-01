@@ -2,10 +2,15 @@ package com.payline.payment.natixis.utils;
 
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.Normalizer;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class PluginUtils {
 
@@ -89,6 +94,16 @@ public class PluginUtils {
             }
         }
         str += String.join(ln, strHeaders);
+
+        if( httpRequest instanceof HttpPost ){
+            try {
+                str += ln + new BufferedReader(new InputStreamReader(((HttpPost)httpRequest).getEntity().getContent()))
+                        .lines()
+                        .collect(Collectors.joining(ln));
+            } catch (IOException e) {
+                str += ln + "<< Error retrieving request body >>";
+            }
+        }
 
         return str;
     }

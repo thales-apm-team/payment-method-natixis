@@ -22,6 +22,7 @@ import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.logger.LogManager;
+import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -544,7 +545,8 @@ public class NatixisHttpClient {
                 errorCode = Integer.parseInt(errorResponse.getStatus());
             }
             catch( NumberFormatException e ){
-                LOGGER.error("Unable to parse the response status as an integer: {}", errorResponse.getStatus());
+                LOGGER.error("Unable to parse the response status as an integer: {} => using HTTP status code instead: {}",
+                        errorResponse.getStatus(), errorCode);
             }
         }
 
