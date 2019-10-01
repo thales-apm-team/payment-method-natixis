@@ -29,7 +29,7 @@ public class HttpTestUtils {
      * @param content The response content/body
      * @return A mocked HTTP response
      */
-    public static CloseableHttpResponse mockHttpResponse(int statusCode, String statusMessage, String content, Header[] headers ){
+    static CloseableHttpResponse mockHttpResponse(int statusCode, String statusMessage, String content, Header[] headers ){
         CloseableHttpResponse response = mock(CloseableHttpResponse.class);
         doReturn( new BasicStatusLine( new ProtocolVersion("HTTP", 1, 1), statusCode, statusMessage) )
                 .when( response ).getStatusLine();

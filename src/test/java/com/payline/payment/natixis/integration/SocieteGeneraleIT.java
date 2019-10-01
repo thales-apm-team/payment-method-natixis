@@ -15,9 +15,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * This is an integration test class to validate the full payment process, via the partner API, using "Societe Generale" as ASPSP.
  * It must be run with several system property set on the JVM :
- * - the ones described in {@link com.payline.payment.natixis.integration.NatixisIT} class documentation
- * - project.aspspLogin: the login for the ASPSP web UI
- * - project.aspspPassword: the password for the ASPSP web UI
+ * @see {@link com.payline.payment.natixis.integration.NatixisIT} class documentation
+ *
+ * It is not fully automated. At some point, the user must enter the SMS code manually in the web browser then click on
+ * "Validate" button.
  */
 public class SocieteGeneraleIT extends NatixisIT {
 

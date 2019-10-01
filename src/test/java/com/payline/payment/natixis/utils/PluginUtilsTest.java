@@ -35,16 +35,17 @@ class PluginUtilsTest {
         String result = PluginUtils.jsonMinify( json );
 
         // then: result match the expected value
-        String expected = "{\"property\":\"value containing space\",\"otherProperty\":{\"stringChild\":\"with comma,\",\"array child\":[\"element 1  \",\"element2\",\"element   3\"]}}";
+        String expected = "{\"property\":\"value containing space\",\"otherProperty\":{\"stringChild\":\"with comma,\"," +
+                "\"array child\":[\"element 1  \",\"element2\",\"element   3\"]}}";
         assertEquals( expected, result );
     }
 
     @ParameterizedTest
-    @MethodSource("replaceCharsSet")
+    @MethodSource("replaceChars_set")
     void replaceChars( String input, String expectedOutput ){
         assertEquals( expectedOutput, PluginUtils.replaceChars( input ) );
     }
-    private static Stream<Arguments> replaceCharsSet() {
+    private static Stream<Arguments> replaceChars_set() {
         return Stream.of(
                 Arguments.of( "àâäçèéêëïîôöùû", "aaaceeeeiioouu" ),
                 Arguments.of( "æÆ", "aeAE" ),
