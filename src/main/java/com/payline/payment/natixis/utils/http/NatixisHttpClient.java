@@ -22,7 +22,6 @@ import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.payment.ContractProperty;
 import com.payline.pmapi.logger.LogManager;
-import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -49,10 +48,7 @@ import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
@@ -309,16 +305,16 @@ public class NatixisHttpClient {
         httpPost.setEntity( new StringEntity( jsonBody, StandardCharsets.UTF_8 ));
 
         // Headers
-        Map<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new LinkedHashMap<>();
         headers.put(HttpHeaders.AUTHORIZATION, auth.getHeaderValue());
         headers.put(HttpHeaders.CONTENT_TYPE, "application/json");
         headers.put(HTTP_HEADER_X_REQUEST_ID, UUID.randomUUID().toString());
 
-        // PSU information headers
-        headers.putAll( this.psuHeaders(psuInformation) );
-
         // Digest header
         headers.put("Digest", this.sha256DigestHeader( jsonBody ));
+
+        // PSU information headers
+        headers.putAll( this.psuHeaders(psuInformation) );
 
         // Add headers to the request
         for (Map.Entry<String, String> h : headers.entrySet()) {
