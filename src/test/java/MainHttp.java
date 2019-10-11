@@ -1,4 +1,5 @@
 import com.payline.payment.natixis.MockUtils;
+import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.NatixisPaymentInitResponse;
 import com.payline.payment.natixis.bean.business.payment.*;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
@@ -20,6 +21,15 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * To run this manual test class, you need to send several system properties to the JVM :
+ * project.clientId: The client ID to retrieve access tokens
+ * project.clientSecret: The client secret to retrieve access tokens
+ * project.certificateChainPath: the path of the local file containing the full certificate chain in PEM format
+ * project.pkPath: the path of the local file containing the private key, exported following PKCS#8 standard, not encryped, in PEM format
+ *
+ * This information being sensitive, it must not appear in the source code !
+ */
 public class MainHttp {
 
     private static final Logger LOGGER = LogManager.getLogger(MainHttp.class);
@@ -32,7 +42,7 @@ public class MainHttp {
         try {
             natixisHttpClient.init( partnerConfiguration );
 
-            //*
+            /*
             LOGGER.info("PAYMENT INIT");
             NatixisPaymentInitResponse paymentInit = natixisHttpClient.paymentInit( initPayment(), MockUtils.aPsuInformation(), requestConfiguration );
             LOGGER.info("PaymentId: " + paymentInit.getPaymentId() );
@@ -46,6 +56,10 @@ public class MainHttp {
             Payment payment = natixisHttpClient.paymentStatus(paymentId, requestConfiguration);
             LOGGER.info("Status: " + payment.getCreditTransferTransactionInformation().get(0).getTransactionStatus());
             //*/
+
+            //*
+            LOGGER.info("BANKS");
+            NatixisBanksResponse banks = natixisHttpClient.banks( requestConfiguration );
 
             LOGGER.info("END");
         } catch( PluginException e ){

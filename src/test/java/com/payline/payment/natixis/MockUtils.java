@@ -10,6 +10,7 @@ import com.payline.payment.natixis.utils.security.RSAHolder;
 import com.payline.pmapi.bean.common.Buyer;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
+import com.payline.pmapi.bean.configuration.request.RetrievePluginConfigurationRequest;
 import com.payline.pmapi.bean.payment.*;
 import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
@@ -157,7 +158,8 @@ public class MockUtils {
                 .withContractConfiguration( aContractConfiguration() )
                 .withEnvironment( anEnvironment() )
                 .withLocale( Locale.getDefault() )
-                .withPartnerConfiguration( aPartnerConfiguration() );
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withPluginConfiguration( aPluginConfiguration() );
     }
 
     public static CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder aCreditTransferTransactionInformationBuilder( String uid ){
@@ -201,10 +203,6 @@ public class MockUtils {
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
 
-        // TODO: remove !
-        String banks = "{\"accountServiceProviders\":[{\"id\":\"CCBPFRPPNAN\",\"bic\":\"CCBPFRPPNAN\",\"bankCode\":\"13807\",\"name\":\"BANQUE POPULAIRE GRAND OUEST\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"CMBRFR2BARK\",\"bic\":\"CMBRFR2BARK\",\"bankCode\":\"15589\",\"name\":\"Crédit Mutuel de Bretagne\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000},{\"id\":\"CEPAFRPP313\",\"bic\":\"CEPAFRPP313\",\"bankCode\":\"13135\",\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\",\"localInstrument\":\"INST\",\"maxAmount\":15000},{\"id\":\"BLUXLULLXXX\",\"bic\":\"BLUXLULLXXX\",\"bankCode\":\"008\",\"name\":\"BANQUE DE LUXEMBOURG\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"SOGEFRPPXXX\",\"bic\":\"SOGEFRPPXXX\",\"bankCode\":\"30003\",\"name\":\"Société Générale\",\"serviceLevel\":\"SEPA\",\"localInstrument\":null,\"maxAmount\":null},{\"id\":\"GPBAFRPPXXX\",\"bic\":\"GPBAFRPPXXX\",\"bankCode\":\"18370\",\"name\":\"ORANGE BANK\",\"serviceLevel\":null,\"localInstrument\":null,\"maxAmount\":null}]}";
-        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.BANKS_LIST, banks);
-
         Map<String, String> sensitiveConfigurationMap = new HashMap<>();
         sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, aClientCertificatePem() );
         sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY, aPrivateKeyPem() );
@@ -232,19 +230,20 @@ public class MockUtils {
      */
     public static PaymentRequest.Builder aPaylinePaymentRequestBuilder(){
         return PaymentRequest.builder()
-                .withContractConfiguration( aContractConfiguration() )
-                .withEnvironment( anEnvironment() )
-                .withPartnerConfiguration( aPartnerConfiguration() )
-                .withBrowser( aBrowser() )
                 .withAmount( aPaylineAmount() )
-                .withOrder( anOrder() )
-                .withSoftDescriptor( "softDescriptor" )
-                .withTransactionId( "123456789012345678901" )
+                .withBrowser( aBrowser() )
                 .withBuyer( aBuyer() )
-                .withLocale( Locale.getDefault() )
-                .withPaymentFormContext( aPaymentFormContext() )
+                .withCaptureNow( true )
+                .withContractConfiguration( aContractConfiguration() )
                 .withDifferedActionDate( PluginUtils.addTime( new Date(), Calendar.DATE, 5) )
-                .withCaptureNow( true );
+                .withEnvironment( anEnvironment() )
+                .withLocale( Locale.getDefault() )
+                .withOrder( anOrder() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withPaymentFormContext( aPaymentFormContext() )
+                .withPluginConfiguration( aPluginConfiguration() )
+                .withSoftDescriptor( "softDescriptor" )
+                .withTransactionId( "123456789012345678901" );
     }
 
     /**
@@ -358,6 +357,14 @@ public class MockUtils {
      * Generate a valid {@link PaymentFormConfigurationRequest}.
      */
     public static PaymentFormConfigurationRequest aPaymentFormConfigurationRequest(){
+        return aPaymentFormConfigurationRequestBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link PaymentFormConfigurationRequest}.
+     * This way, some attributes may be overridden to match specific test needs.
+     */
+    public static PaymentFormConfigurationRequest.PaymentFormConfigurationRequestBuilder aPaymentFormConfigurationRequestBuilder(){
         return PaymentFormConfigurationRequest.PaymentFormConfigurationRequestBuilder.aPaymentFormConfigurationRequest()
                 .withAmount( aPaylineAmount() )
                 .withBuyer( aBuyer() )
@@ -366,7 +373,7 @@ public class MockUtils {
                 .withLocale( Locale.getDefault() )
                 .withOrder( anOrder() )
                 .withPartnerConfiguration( aPartnerConfiguration() )
-                .build();
+                .withPluginConfiguration( aPluginConfiguration() );
     }
 
     /**
@@ -379,6 +386,13 @@ public class MockUtils {
                 .withPartnerConfiguration( aPartnerConfiguration() )
                 .withLocale( Locale.getDefault() )
                 .build();
+    }
+
+    /**
+     * Generate a valid plugin configuration, as a <code>String</code>.
+     */
+    public static String aPluginConfiguration(){
+        return "{\"accountServiceProviders\":[{\"bankCode\":\"30003\",\"bic\":\"SOGEFRPPXXX\",\"id\":\"SOGEFRPPXXX\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"STE GENERALE\",\"serviceLevel\":\"SEPA\"},{\"bankCode\":\"13135\",\"bic\":\"CEPAFRPP313\",\"id\":\"CEPAFRPP313\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\"}]}";
     }
 
     /**
@@ -479,6 +493,25 @@ public class MockUtils {
     }
 
     /**
+     * Generate a valid {@link RetrievePluginConfigurationRequest}.
+     */
+    public static RetrievePluginConfigurationRequest aRetrievePluginConfigurationRequest(){
+        return aRetrievePluginConfigurationRequestBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link RetrievePluginConfigurationRequest}.
+     * This way, some attributes may be overridden to match specific test needs.
+     */
+    public static RetrievePluginConfigurationRequest.RetrieveConfigurationRequestBuilder aRetrievePluginConfigurationRequestBuilder(){
+        return RetrievePluginConfigurationRequest.RetrieveConfigurationRequestBuilder.aRetrieveConfigurationRequest()
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withPluginConfiguration( aPluginConfiguration() );
+    }
+
+    /**
      * Generate an {@link RSAHolder} instance, containing fake elements, for test purpose.
      */
     public static RSAHolder anRsaHolder(){
@@ -505,6 +538,7 @@ public class MockUtils {
                 .withEnvironment( anEnvironment() )
                 .withOrder( anOrder() )
                 .withPartnerConfiguration( aPartnerConfiguration() )
+                .withPluginConfiguration( aPluginConfiguration() )
                 .withTransactionId( aTransactionId() )
                 .build();
     }
@@ -550,6 +584,7 @@ public class MockUtils {
                 .withEnvironment( anEnvironment() )
                 .withOrder( anOrder() )
                 .withPartnerConfiguration( aPartnerConfiguration() )
+                .withPluginConfiguration( aPluginConfiguration() )
                 .withTransactionId( aTransactionId() )
                 .build();
     }

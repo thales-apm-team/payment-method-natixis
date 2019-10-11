@@ -1,6 +1,7 @@
 package com.payline.payment.natixis.service.impl;
 
 import com.payline.payment.natixis.MockUtils;
+import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
@@ -9,6 +10,7 @@ import com.payline.pmapi.bean.configuration.ReleaseInformation;
 import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.ListBoxParameter;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
+import com.payline.pmapi.bean.configuration.request.RetrievePluginConfigurationRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -137,6 +139,40 @@ class ConfigurationServiceImplTest {
         assertEquals(2019, releaseInformation.getDate().getYear());
         assertEquals(Month.AUGUST, releaseInformation.getDate().getMonth());
         assertEquals(19, releaseInformation.getDate().getDayOfMonth());
+    }
+
+    @Test
+    void retrievePluginConfiguration_nominal(){
+        // given: the HTTP client returns a proper response
+        String banks = MockUtils.aPluginConfiguration();
+        doReturn( NatixisBanksResponse.fromJson( banks ) ).when( natixisHttpClient ).banks( any(RequestConfiguration.class) );
+
+        RetrievePluginConfigurationRequest request = MockUtils.aRetrievePluginConfigurationRequestBuilder()
+                .withPluginConfiguration("initial configuration")
+                .build();
+
+        // when: calling the method retrievePluginConfiguration
+        String result = service.retrievePluginConfiguration( request );
+
+        // then: the returned value contains the banks as a JSON string
+        assertEquals( banks, result );
+    }
+
+    @Test
+    void retrievePluginConfiguration_exception(){
+        // given: the HTTP client throws an exception (partner API could not be reached, for example)
+        doThrow( PluginException.class ).when( natixisHttpClient ).banks( any(RequestConfiguration.class) );
+
+        String initialConfiguration = "initial configuration";
+        RetrievePluginConfigurationRequest request = MockUtils.aRetrievePluginConfigurationRequestBuilder()
+                .withPluginConfiguration(initialConfiguration)
+                .build();
+
+        // when: calling the method retrievePluginConfiguration
+        String result = service.retrievePluginConfiguration( request );
+
+        // then: the returned value contains the initial plugin configuration
+        assertEquals( initialConfiguration, result );
     }
 
 }

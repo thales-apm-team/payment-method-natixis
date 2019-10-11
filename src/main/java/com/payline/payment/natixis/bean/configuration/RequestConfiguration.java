@@ -4,6 +4,7 @@ import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.pmapi.bean.capture.request.CaptureRequest;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
+import com.payline.pmapi.bean.configuration.request.RetrievePluginConfigurationRequest;
 import com.payline.pmapi.bean.notification.request.NotificationRequest;
 import com.payline.pmapi.bean.payment.ContractConfiguration;
 import com.payline.pmapi.bean.payment.Environment;
@@ -74,6 +75,10 @@ public class RequestConfiguration {
     }
 
     public static RequestConfiguration build(ResetRequest request){
+        return new RequestConfiguration( request.getContractConfiguration(), request.getEnvironment(), request.getPartnerConfiguration() );
+    }
+
+    public static RequestConfiguration build(RetrievePluginConfigurationRequest request){
         return new RequestConfiguration( request.getContractConfiguration(), request.getEnvironment(), request.getPartnerConfiguration() );
     }
 

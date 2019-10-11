@@ -19,8 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import static com.payline.payment.natixis.utils.Constants.PartnerConfigurationKeys.BANKS_LIST;
-
 public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigurationService {
 
     private static final Logger LOGGER = LogManager.getLogger(PaymentFormConfigurationServiceImpl.class);
@@ -31,11 +29,9 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
         try {
             Locale locale = paymentFormConfigurationRequest.getLocale();
 
-            // TODO: replace with PluginConfiguration ! (in the comment too)
-            // Retrieve banks list from partner configuration
-            String serialized = paymentFormConfigurationRequest.getPartnerConfiguration().getProperty( BANKS_LIST );
+            // retrieve the banks list from the plugin configuration
             final List<SelectOption> banks = new ArrayList<>();
-            for( Bank bank : NatixisBanksResponse.fromJson( serialized ).getList() ){
+            for( Bank bank : NatixisBanksResponse.fromJson( paymentFormConfigurationRequest.getPluginConfiguration() ).getList() ){
                 banks.add(SelectOption.SelectOptionBuilder.aSelectOption().withKey(bank.getBic()).withValue(bank.getName()).build());
             }
 
@@ -67,4 +63,5 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
 
         return pfcResponse;
     }
+
 }

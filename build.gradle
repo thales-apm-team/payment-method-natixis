@@ -28,7 +28,7 @@ targetCompatibility = 1.8
 compileJava.options.encoding = 'UTF-8'
 
 ext {
-    paymentMethodApiVersion = '1.4'
+    paymentMethodApiVersion = '1.5'
     //paymentMethodIntegrationVersion = '1.4'
 }
 

@@ -522,7 +522,6 @@ public class NatixisHttpClient {
      * @return The {@link PluginException} to throw
      */
     PluginException handleErrorResponse( StringResponse response ){
-        System.err.println( response.getContent() ); // TODO: remove !
         // Trying to parse the error response with the specified format
         NatixisErrorResponse errorResponse;
         try {

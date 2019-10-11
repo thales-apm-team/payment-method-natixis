@@ -1,25 +1,33 @@
 package com.payline.payment.natixis.service.impl;
 
+import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.payment.natixis.utils.properties.ReleaseProperties;
+import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.configuration.ReleaseInformation;
 import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.InputParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.ListBoxParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.PasswordParameter;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
+import com.payline.pmapi.bean.configuration.request.RetrievePluginConfigurationRequest;
 import com.payline.pmapi.bean.payment.ContractProperty;
+import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
+import com.payline.pmapi.logger.LogManager;
 import com.payline.pmapi.service.ConfigurationService;
+import org.apache.logging.log4j.Logger;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class ConfigurationServiceImpl implements ConfigurationService {
+
+    private static final Logger LOGGER = LogManager.getLogger(ConfigurationServiceImpl.class);
 
     private static final class CategoryPurpose {
         private static final String CASH = "CASH";
@@ -215,6 +223,26 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         }
 
         return errors;
+    }
+
+    @Override
+    public String retrievePluginConfiguration(RetrievePluginConfigurationRequest retrievePluginConfigurationRequest) {
+        try {
+            RequestConfiguration requestConfiguration = RequestConfiguration.build( retrievePluginConfigurationRequest );
+
+            // Init HTTP client
+            natixisHttpClient.init( requestConfiguration.getPartnerConfiguration() );
+
+            // Retrieve account service providers list
+            NatixisBanksResponse banks = natixisHttpClient.banks( requestConfiguration );
+
+            // Return as a JSON string
+            return banks.toString();
+        }
+        catch( RuntimeException e ){
+            LOGGER.error("Could not retrieve plugin configuration due to a plugin error", e );
+            return retrievePluginConfigurationRequest.getPluginConfiguration();
+        }
     }
 
     @Override
