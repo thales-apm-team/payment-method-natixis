@@ -16,17 +16,14 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * To run this manual test class, you need to send several system properties to the JVM :
  * project.clientId: The client ID to retrieve access tokens
  * project.clientSecret: The client secret to retrieve access tokens
  * project.certificateChainPath: the path of the local file containing the full certificate chain in PEM format
- * project.pkPath: the path of the local file containing the private key, exported following PKCS#8 standard, not encryped, in PEM format
+ * project.pkPath: the path of the local file containing the private key, exported following PKCS#8 standard, not encrypted, in PEM format
  *
  * This information being sensitive, it must not appear in the source code !
  */
@@ -42,7 +39,7 @@ public class MainHttp {
         try {
             natixisHttpClient.init( partnerConfiguration );
 
-            /*
+            //*
             LOGGER.info("PAYMENT INIT");
             NatixisPaymentInitResponse paymentInit = natixisHttpClient.paymentInit( initPayment(), MockUtils.aPsuInformation(), requestConfiguration );
             LOGGER.info("PaymentId: " + paymentInit.getPaymentId() );
@@ -57,13 +54,14 @@ public class MainHttp {
             LOGGER.info("Status: " + payment.getCreditTransferTransactionInformation().get(0).getTransactionStatus());
             //*/
 
-            //*
+            /*
             LOGGER.info("BANKS");
             NatixisBanksResponse banks = natixisHttpClient.banks( requestConfiguration );
+            //*/
 
             LOGGER.info("END");
         } catch( PluginException e ){
-            LOGGER.error("PluginException: errorCode={}, failureCause={}", e.getErrorCode(), e.getFailureCause().toString());
+            LOGGER.error("PluginException: errorCode=\"{}\", failureCause={}", e.getErrorCode(), e.getFailureCause().toString());
             e.printStackTrace();
         } catch( Exception e ){
             e.printStackTrace();
@@ -94,10 +92,22 @@ public class MainHttp {
 
     private static Payment initPayment(){
         //Payment payment = MockUtils.aPaymentBuilder().build();
+        Date now = new Date();
+        Calendar cal = Calendar.getInstance();
+        /*
+        cal.add(Calendar.DATE, 1);
+        cal.set(Calendar.HOUR, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        Date tomorrowMidnight = cal.getTime();
+        */
+        cal.setTime( now );
+        cal.add(Calendar.SECOND, 10);
+
         String uid = MockUtils.aUniqueIdentifier();
         Payment payment = new Payment.PaymentBuilder()
                 .withPaymentInformationIdentification( uid )
-                .withCreationDateTime( new Date() )
+                .withCreationDateTime( now )
                 .withNumberOfTransactions( 1 )
                 .withInitiatingParty( new PartyIdentification.PartyIdentificationBuilder()
                         .withName("NATIXIS PAYMENT SOLUTIONS")
@@ -125,8 +135,8 @@ public class MainHttp {
                 )
                 .withPurpose("COMC")
                 .withChargeBearer("SLEV")
-                .withRequestedExecutionDate( PluginUtils.addTime( new Date(), Calendar.DATE, 1 ) )
-                //.withRequestedExecutionDate( new Date() )
+                //.withRequestedExecutionDate( PluginUtils.addTime( tomorrowMidnight, Calendar.SECOND, 10 ) )
+                .withRequestedExecutionDate( cal.getTime() )
                 .addCreditTransferTransactionInformation(
                         new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
                                 .withInstructedAmount( new Amount.AmountBuilder()

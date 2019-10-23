@@ -493,25 +493,6 @@ public class MockUtils {
     }
 
     /**
-     * Generate a valid {@link RetrievePluginConfigurationRequest}.
-     */
-    public static RetrievePluginConfigurationRequest aRetrievePluginConfigurationRequest(){
-        return aRetrievePluginConfigurationRequestBuilder().build();
-    }
-
-    /**
-     * Generate a builder for a valid {@link RetrievePluginConfigurationRequest}.
-     * This way, some attributes may be overridden to match specific test needs.
-     */
-    public static RetrievePluginConfigurationRequest.RetrieveConfigurationRequestBuilder aRetrievePluginConfigurationRequestBuilder(){
-        return RetrievePluginConfigurationRequest.RetrieveConfigurationRequestBuilder.aRetrieveConfigurationRequest()
-                .withContractConfiguration( aContractConfiguration() )
-                .withEnvironment( anEnvironment() )
-                .withPartnerConfiguration( aPartnerConfiguration() )
-                .withPluginConfiguration( aPluginConfiguration() );
-    }
-
-    /**
      * Generate an {@link RSAHolder} instance, containing fake elements, for test purpose.
      */
     public static RSAHolder anRsaHolder(){
@@ -548,6 +529,25 @@ public class MockUtils {
      */
     public static RequestConfiguration aRequestConfiguration(){
         return new RequestConfiguration( aContractConfiguration(), anEnvironment(), aPartnerConfiguration() );
+    }
+
+    /**
+     * Generate a valid {@link RetrievePluginConfigurationRequest}.
+     */
+    public static RetrievePluginConfigurationRequest aRetrievePluginConfigurationRequest(){
+        return aRetrievePluginConfigurationRequestBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link RetrievePluginConfigurationRequest}.
+     * This way, some attributes may be overridden to match specific test needs.
+     */
+    public static RetrievePluginConfigurationRequest.RetrieveConfigurationRequestBuilder aRetrievePluginConfigurationRequestBuilder(){
+        return RetrievePluginConfigurationRequest.RetrieveConfigurationRequestBuilder.aRetrieveConfigurationRequest()
+                .withContractConfiguration( aContractConfiguration() )
+                .withEnvironment( anEnvironment() )
+                .withPartnerConfiguration( aPartnerConfiguration() )
+                .withPluginConfiguration( aPluginConfiguration() );
     }
 
     /**

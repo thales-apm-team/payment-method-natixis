@@ -110,7 +110,7 @@ public class PaymentServiceImpl implements PaymentService {
                     )
                     .withPurpose( contract.getProperty(Constants.ContractConfigurationKeys.PURPOSE ).getValue() )
                     .withChargeBearer( contract.getProperty(Constants.ContractConfigurationKeys.CHARGE_BEARER ).getValue() )
-                    .withRequestedExecutionDate( paymentRequest.getDifferedActionDate() == null ? PluginUtils.addTime( now, Calendar.MINUTE, 1 ) : paymentRequest.getDifferedActionDate() )
+                    .withRequestedExecutionDate( paymentRequest.getDifferedActionDate() == null ? PluginUtils.addTime( now, Calendar.SECOND, 10 ) : paymentRequest.getDifferedActionDate() )
                     .addCreditTransferTransactionInformation( new CreditTransferTransactionInformation.CreditTransferTransactionInformationBuilder()
                             .withInstructedAmount( new Amount.AmountBuilder()
                                     .withAmount( this.formatAmount( paymentRequest.getAmount().getAmountInSmallestUnit() ) )
