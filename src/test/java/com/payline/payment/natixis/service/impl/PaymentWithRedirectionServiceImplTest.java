@@ -9,6 +9,7 @@ import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.configuration.PartnerConfiguration;
+import com.payline.pmapi.bean.payment.request.RedirectionPaymentRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseOnHold;
@@ -20,6 +21,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.stream.Stream;
@@ -28,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
 
 public class PaymentWithRedirectionServiceImplTest {
 
@@ -42,6 +43,27 @@ public class PaymentWithRedirectionServiceImplTest {
     void setup(){
         service = new PaymentWithRedirectionServiceImpl();
         MockitoAnnotations.initMocks( this );
+    }
+
+    @Test
+    void finalizeRedirectionPayment_noPaymentId(){
+        // Need a spied instance for this test (test at the end)
+        PaymentWithRedirectionServiceImpl spiedService = Mockito.spy( service );
+
+        // given: a RedirectionPaymentRequest without PAYMENT_ID in the RequestContext
+        RedirectionPaymentRequest request = (RedirectionPaymentRequest) MockUtils.aRedirectionPaymentRequestBuilder()
+                .withRequestContext( null )
+                .build();
+
+        // when: calling the finalizeRedirectionPayment method
+        PaymentResponse response = spiedService.finalizeRedirectionPayment( request );
+
+        // then: the response is a failure, and  (to avoid false positive)
+        assertEquals( PaymentResponseFailure.class, response.getClass() );
+        TestUtils.checkPaymentResponse( (PaymentResponseFailure) response );
+
+        // verify that updateTransactionState method is never called (to prevent false positive due to any error that could happen in this method)
+        verify( spiedService, never() ).updateTransactionState( anyString(), any(RequestConfiguration.class) );
     }
 
     @Test

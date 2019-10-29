@@ -2,7 +2,9 @@ package com.payline.payment.natixis.service.impl;
 
 import com.payline.payment.natixis.bean.business.payment.Payment;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
+import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.common.OnHoldCause;
@@ -29,8 +31,16 @@ public class PaymentWithRedirectionServiceImpl implements PaymentWithRedirection
         PaymentResponse paymentResponse;
 
         try {
+            // Retrieve payment ID from request context
+            if( redirectionPaymentRequest.getRequestContext() == null
+                    || redirectionPaymentRequest.getRequestContext().getRequestData() == null
+                    || redirectionPaymentRequest.getRequestContext().getRequestData().get(Constants.RequestContextKeys.PAYMENT_ID) == null ){
+                throw new InvalidDataException("Missing payment ID from request context");
+            }
+            String paymentId = redirectionPaymentRequest.getRequestContext().getRequestData().get(Constants.RequestContextKeys.PAYMENT_ID);
+
             // Update transaction state
-            paymentResponse = this.updateTransactionState( redirectionPaymentRequest.getTransactionId(), RequestConfiguration.build( redirectionPaymentRequest ) );
+            paymentResponse = this.updateTransactionState( paymentId, RequestConfiguration.build( redirectionPaymentRequest ) );
         }
         catch( PluginException e ){
             paymentResponse = e.toPaymentResponseFailureBuilder().build();

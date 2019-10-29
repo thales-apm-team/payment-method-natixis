@@ -511,7 +511,15 @@ public class MockUtils {
      * Generate a valid {@link RedirectionPaymentRequest}.
      */
     public static RedirectionPaymentRequest aRedirectionPaymentRequest(){
-        return RedirectionPaymentRequest.builder()
+        return (RedirectionPaymentRequest) aRedirectionPaymentRequestBuilder().build();
+    }
+
+    /**
+     * Generate a builder for a valid {@link RedirectionPaymentRequest}.
+     * This way, some attributes may be overridden to match specific test needs.
+     */
+    public static RedirectionPaymentRequest.Builder aRedirectionPaymentRequestBuilder(){
+        return (RedirectionPaymentRequest.Builder) RedirectionPaymentRequest.builder()
                 .withAmount( aPaylineAmount() )
                 .withBrowser( aBrowser() )
                 .withBuyer( aBuyer() )
@@ -520,8 +528,8 @@ public class MockUtils {
                 .withOrder( anOrder() )
                 .withPartnerConfiguration( aPartnerConfiguration() )
                 .withPluginConfiguration( aPluginConfiguration() )
-                .withTransactionId( aTransactionId() )
-                .build();
+                .withRequestContext( aRequestContext() )
+                .withTransactionId( aTransactionId() );
     }
 
     /**
@@ -529,6 +537,19 @@ public class MockUtils {
      */
     public static RequestConfiguration aRequestConfiguration(){
         return new RequestConfiguration( aContractConfiguration(), anEnvironment(), aPartnerConfiguration() );
+    }
+
+    /**
+     * Generate a {@link RequestContext}, as it is returned by the <code>PaymentServiceImpl</code>
+     */
+    public static RequestContext aRequestContext(){
+        Map<String, String> requestData = new HashMap<>();
+        requestData.put(Constants.RequestContextKeys.PAYMENT_ID, aPaymentId());
+
+        return RequestContext.RequestContextBuilder.aRequestContext()
+                .withRequestData( requestData )
+                .withSensitiveRequestData( new HashMap<>() )
+                .build();
     }
 
     /**
