@@ -11,8 +11,12 @@ import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.ListBoxParameter;
 import com.payline.pmapi.bean.configuration.request.ContractParametersCheckRequest;
 import com.payline.pmapi.bean.configuration.request.RetrievePluginConfigurationRequest;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -20,6 +24,7 @@ import org.mockito.MockitoAnnotations;
 import java.text.SimpleDateFormat;
 import java.time.Month;
 import java.util.*;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,13 +37,24 @@ class ConfigurationServiceImplTest {
     @Mock private NatixisHttpClient natixisHttpClient;
     @Mock private ReleaseProperties releaseProperties;
 
-
     @InjectMocks
     private ConfigurationServiceImpl service;
+
+    @BeforeAll
+    static void before(){
+        // This allows to test the default messages.properties file (no locale suffix)
+        Locale.setDefault( Locale.CHINESE );
+    }
 
     @BeforeEach
     void setup(){
         MockitoAnnotations.initMocks(this);
+    }
+
+    @AfterAll
+    static void after(){
+        // Back to standard default locale
+        Locale.setDefault( Locale.ENGLISH );
     }
 
     @Test
@@ -95,7 +111,8 @@ class ConfigurationServiceImplTest {
         assertNotNull( name );
     }
 
-    @Test
+    @ParameterizedTest
+    @MethodSource("getLocales")
     void getParameters() {
         // when: retrieving the contract parameters
         List<AbstractParameter> parameters = service.getParameters( Locale.getDefault() );
@@ -118,6 +135,10 @@ class ConfigurationServiceImplTest {
                 assertFalse( ((ListBoxParameter) param).getList().isEmpty() );
             }
         }
+    }
+    /** Set of locales to test the getParameters() method. ZZ allows to search in the default messages.properties file. */
+    static Stream<Locale> getLocales(){
+        return Stream.of( Locale.FRENCH, Locale.ENGLISH, new Locale("ZZ") );
     }
 
     @Test
