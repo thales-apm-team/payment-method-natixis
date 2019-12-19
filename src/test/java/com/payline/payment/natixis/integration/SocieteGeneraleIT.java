@@ -2,6 +2,7 @@ package com.payline.payment.natixis.integration;
 
 import com.payline.payment.natixis.service.impl.PaymentServiceImpl;
 import com.payline.payment.natixis.service.impl.PaymentWithRedirectionServiceImpl;
+import com.payline.pmapi.bean.payment.request.PaymentRequest;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -11,6 +12,8 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * This is an integration test class to validate the full payment process, via the partner API, using "Societe Generale" as ASPSP.
@@ -28,7 +31,9 @@ public class SocieteGeneraleIT extends NatixisIT {
     @Test
     @Override
     protected void run() {
-        this.fullRedirectionPayment( this.generatePaymentRequest(), new PaymentServiceImpl(), new PaymentWithRedirectionServiceImpl() );
+        PaymentRequest paymentRequest = this.generatePaymentRequest();
+        assertNotNull( paymentRequest );
+        this.fullRedirectionPayment( paymentRequest, new PaymentServiceImpl(), new PaymentWithRedirectionServiceImpl() );
     }
 
     @Override
