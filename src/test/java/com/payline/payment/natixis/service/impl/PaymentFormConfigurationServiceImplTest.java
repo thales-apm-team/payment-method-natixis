@@ -20,8 +20,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.MissingResourceException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
@@ -51,11 +50,25 @@ class PaymentFormConfigurationServiceImplTest {
 
         // then: response is a failure
         assertEquals(PaymentFormConfigurationResponseFailure.class, response.getClass());
-        assertNotNull( ((PaymentFormConfigurationResponseFailure)response).getErrorCode() );
-        assertNotNull( ((PaymentFormConfigurationResponseFailure)response).getFailureCause() );
+        checkPaymentResponse( (PaymentFormConfigurationResponseFailure)response );
 
         // check the mock has been called at least once (to prevent false positive due to a RuntimeException)
         verify( i18n, atLeastOnce() ).getMessage( anyString(), any(Locale.class) );
+    }
+
+    @Test
+    void getPaymentFormConfiguration_noPluginConfiguration(){
+        // given: the plugin configuration is invalid
+        PaymentFormConfigurationRequest request = MockUtils.aPaymentFormConfigurationRequestBuilder()
+                .withPluginConfiguration( null )
+                .build();
+
+        // when: calling getPaymentFormConfiguration method
+        PaymentFormConfigurationResponse response = service.getPaymentFormConfiguration( request );
+
+        // then: response is a failure
+        assertEquals(PaymentFormConfigurationResponseFailure.class, response.getClass());
+        checkPaymentResponse( (PaymentFormConfigurationResponseFailure)response );
     }
 
     @Test
@@ -70,8 +83,7 @@ class PaymentFormConfigurationServiceImplTest {
 
         // then: response is a failure
         assertEquals(PaymentFormConfigurationResponseFailure.class, response.getClass());
-        assertNotNull( ((PaymentFormConfigurationResponseFailure)response).getErrorCode() );
-        assertNotNull( ((PaymentFormConfigurationResponseFailure)response).getFailureCause() );
+        checkPaymentResponse( (PaymentFormConfigurationResponseFailure)response );
     }
 
     @Test
@@ -94,6 +106,17 @@ class PaymentFormConfigurationServiceImplTest {
         assertEquals(BankTransferForm.class, form.getClass());
         BankTransferForm bankTransferForm = (BankTransferForm) form;
         assertEquals(banks.size(), bankTransferForm.getBanks().size());
+    }
+
+    /**
+     * Check the validity of a <code>PaymentFormConfigurationResponseFailure</code>,
+     * based on <code>PaymentFormConfigurationResponseFailure#verifyIntegrity()</code> content
+     * and the best practices.
+     */
+    private static void checkPaymentResponse( PaymentFormConfigurationResponseFailure response ){
+        assertNotNull( response.getErrorCode() );
+        assertTrue( response.getErrorCode().length() <= 50 );
+        assertNotNull( response.getFailureCause() );
     }
 
 }

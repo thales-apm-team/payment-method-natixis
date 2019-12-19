@@ -2,6 +2,7 @@ package com.payline.payment.natixis.service.impl;
 
 import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.bank.Bank;
+import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
 import com.payline.pmapi.bean.common.FailureCause;
@@ -30,6 +31,9 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
             Locale locale = paymentFormConfigurationRequest.getLocale();
 
             // retrieve the banks list from the plugin configuration
+            if( paymentFormConfigurationRequest.getPluginConfiguration() == null ){
+                throw new InvalidDataException("Plugin configuration must not be null");
+            }
             final List<SelectOption> banks = new ArrayList<>();
             for( Bank bank : NatixisBanksResponse.fromJson( paymentFormConfigurationRequest.getPluginConfiguration() ).getList() ){
                 banks.add(SelectOption.SelectOptionBuilder.aSelectOption().withKey(bank.getBic()).withValue(bank.getName()).build());
