@@ -19,8 +19,8 @@ if (file(externalFileName).exists()) {
 }
 
 description = 'payment-method-natixis'
-group = 'com.payline.payment.natixis'
-version = '1.0-SNAPSHOT'
+group = 'com.payline.payment.scti-natixis'
+version = '1.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
