@@ -392,7 +392,7 @@ public class MockUtils {
      * Generate a valid plugin configuration, as a <code>String</code>.
      */
     public static String aPluginConfiguration(){
-        return "{\"accountServiceProviders\":[{\"bankCode\":\"30003\",\"bic\":\"SOGEFRPPXXX\",\"id\":\"SOGEFRPPXXX\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"STE GENERALE\",\"serviceLevel\":\"SEPA\"},{\"bankCode\":\"13135\",\"bic\":\"CEPAFRPP313\",\"id\":\"CEPAFRPP313\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\"}]}";
+        return "{\"accountServiceProviders\":[{\"bankCode\":\"30003\",\"bic\":\"SOGEFRPPXXX\",\"id\":\"SOGEFRPPXXX\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"STE GENERALE\",\"serviceLevel\":\"SEPA\"},{\"bankCode\":\"13135\",\"bic\":\"CEPAFRPP313\",\"id\":\"CEPAFRPP313\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\"}]}&&&thisIsAKey";
     }
 
     /**

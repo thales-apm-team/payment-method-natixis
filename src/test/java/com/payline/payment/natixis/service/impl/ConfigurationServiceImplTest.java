@@ -4,6 +4,7 @@ import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.properties.ReleaseProperties;
 import com.payline.pmapi.bean.configuration.ReleaseInformation;
@@ -34,123 +35,128 @@ class ConfigurationServiceImplTest {
 
     /* I18nService is not mocked here, on purpose, to validate the existence of all
     the messages related to this class, at least in the default locale */
-    @Mock private NatixisHttpClient natixisHttpClient;
-    @Mock private ReleaseProperties releaseProperties;
+    @Mock
+    private NatixisHttpClient natixisHttpClient;
+    @Mock
+    private ReleaseProperties releaseProperties;
 
     @InjectMocks
     private ConfigurationServiceImpl service;
 
     @BeforeAll
-    static void before(){
+    static void before() {
         // This allows to test the default messages.properties file (no locale suffix)
-        Locale.setDefault( Locale.CHINESE );
+        Locale.setDefault(Locale.CHINESE);
     }
 
     @BeforeEach
-    void setup(){
+    void setup() {
         MockitoAnnotations.initMocks(this);
     }
 
     @AfterAll
-    static void after(){
+    static void after() {
         // Back to standard default locale
-        Locale.setDefault( Locale.ENGLISH );
+        Locale.setDefault(Locale.ENGLISH);
     }
 
     @Test
-    void check_nominal(){
+    void check_nominal() {
         // given: a valid configuration, including client ID / secret
         ContractParametersCheckRequest checkRequest = MockUtils.aContractParametersCheckRequest();
-        doReturn( MockUtils.anAuthorization() ).when( natixisHttpClient ).authorize( any(RequestConfiguration.class) );
+        doReturn(MockUtils.anAuthorization()).when(natixisHttpClient).authorize(any(RequestConfiguration.class));
 
         // when: checking the configuration
-        Map<String, String> errors = service.check( checkRequest );
+        Map<String, String> errors = service.check(checkRequest);
 
         // then: error map is empty
-        assertTrue( errors.isEmpty() );
+        assertTrue(errors.isEmpty());
     }
 
     @Test
-    void check_emptyAccountInfo(){
+    void check_emptyAccountInfo() {
         // given: an empty accountInfo
         ContractParametersCheckRequest checkRequest = MockUtils.aContractParametersCheckRequestBuilder()
                 .withAccountInfo(new HashMap<>())
                 .build();
 
         // when: checking the configuration
-        Map<String, String> errors = service.check( checkRequest );
+        Map<String, String> errors = service.check(checkRequest);
 
         // then: there is an error for each parameter, each error has a valid message and authorize method is never called
-        assertEquals(service.getParameters( Locale.getDefault() ).size(), errors.size() );
-        for( Map.Entry<String, String> error : errors.entrySet() ){
-            assertNotNull( error.getValue() );
-            assertFalse( error.getValue().contains("???") );
+        assertEquals(service.getParameters(Locale.getDefault()).size(), errors.size());
+        for (Map.Entry<String, String> error : errors.entrySet()) {
+            assertNotNull(error.getValue());
+            assertFalse(error.getValue().contains("???"));
         }
-        verify( natixisHttpClient, never() ).authorize( any( RequestConfiguration.class ) );
+        verify(natixisHttpClient, never()).authorize(any(RequestConfiguration.class));
     }
 
     @Test
-    void check_wrongAuthorization(){
+    void check_wrongAuthorization() {
         // given: the client ID or secret is wrong. The partner authorization API returns an error.
         ContractParametersCheckRequest checkRequest = MockUtils.aContractParametersCheckRequest();
-        doThrow( PluginException.class ).when( natixisHttpClient ).authorize( any(RequestConfiguration.class) );
+        doThrow(PluginException.class).when(natixisHttpClient).authorize(any(RequestConfiguration.class));
 
         // when: checking the configuration
-        Map<String, String> errors = service.check( checkRequest );
+        Map<String, String> errors = service.check(checkRequest);
 
         // then: no exception is thrown, but there are some errors
-        assertTrue( errors.size() > 0 );
+        assertTrue(errors.size() > 0);
     }
 
     @Test
-    void getName(){
+    void getName() {
         // when: calling the method getName
-        String name = service.getName( Locale.getDefault() );
+        String name = service.getName(Locale.getDefault());
 
         // then: the method returns the name
-        assertNotNull( name );
+        assertNotNull(name);
     }
 
     @ParameterizedTest
     @MethodSource("getLocales")
     void getParameters() {
         // when: retrieving the contract parameters
-        List<AbstractParameter> parameters = service.getParameters( Locale.getDefault() );
+        List<AbstractParameter> parameters = service.getParameters(Locale.getDefault());
 
         // then: each parameter has a unique key, a label and a description. List box parameters have at least 1 possible value.
         List<String> keys = new ArrayList<>();
-        for( AbstractParameter param : parameters ){
+        for (AbstractParameter param : parameters) {
             // 2 different parameters should not have the same key
-            assertFalse( keys.contains( param.getKey() ) );
-            keys.add( param.getKey() );
+            assertFalse(keys.contains(param.getKey()));
+            keys.add(param.getKey());
 
             // each parameter should have a label and a description
-            assertNotNull( param.getLabel() );
-            assertFalse( param.getLabel().contains("???") );
-            assertNotNull( param.getDescription() );
-            assertFalse( param.getDescription().contains("???") );
+            assertNotNull(param.getLabel());
+            assertFalse(param.getLabel().contains("???"));
+            assertNotNull(param.getDescription());
+            assertFalse(param.getDescription().contains("???"));
 
             // in case of a ListBoxParameter, it should have at least 1 value
-            if( param instanceof ListBoxParameter ){
-                assertFalse( ((ListBoxParameter) param).getList().isEmpty() );
+            if (param instanceof ListBoxParameter) {
+                assertFalse(((ListBoxParameter) param).getList().isEmpty());
             }
         }
     }
-    /** Set of locales to test the getParameters() method. ZZ allows to search in the default messages.properties file. */
-    static Stream<Locale> getLocales(){
-        return Stream.of( Locale.FRENCH, Locale.ENGLISH, new Locale("ZZ") );
+
+    /**
+     * Set of locales to test the getParameters() method. ZZ allows to search in the default messages.properties file.
+     */
+    static Stream<Locale> getLocales() {
+        return Stream.of(Locale.FRENCH, Locale.ENGLISH, new Locale("ZZ"));
     }
 
     @Test
-    void getReleaseInformation(){
+    void getReleaseInformation() {
         SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
         String version = "M.m.p";
 
         // given: the release properties are OK
-        doReturn( version ).when( releaseProperties ).get("release.version");
+        doReturn(version).when(releaseProperties).get("release.version");
         Calendar cal = new GregorianCalendar();
         cal.set(2019, Calendar.AUGUST, 19);
-        doReturn( formatter.format( cal.getTime() ) ).when( releaseProperties ).get("release.date");
+        doReturn(formatter.format(cal.getTime())).when(releaseProperties).get("release.date");
 
         // when: calling the method getReleaseInformation
         ReleaseInformation releaseInformation = service.getReleaseInformation();
@@ -163,37 +169,38 @@ class ConfigurationServiceImplTest {
     }
 
     @Test
-    void retrievePluginConfiguration_nominal(){
+    void retrievePluginConfiguration_nominal() {
         // given: the HTTP client returns a proper response
-        String banks = MockUtils.aPluginConfiguration();
-        doReturn( NatixisBanksResponse.fromJson( banks ) ).when( natixisHttpClient ).banks( any(RequestConfiguration.class) );
+        String banks = PluginUtils.extractBanks( MockUtils.aPluginConfiguration());
+        doReturn(NatixisBanksResponse.fromJson(banks)).when(natixisHttpClient).banks(any(RequestConfiguration.class));
 
         RetrievePluginConfigurationRequest request = MockUtils.aRetrievePluginConfigurationRequestBuilder()
-                .withPluginConfiguration("initial configuration")
+                .withPluginConfiguration("initial configuration&&&key")
                 .build();
 
         // when: calling the method retrievePluginConfiguration
-        String result = service.retrievePluginConfiguration( request );
+        String result = service.retrievePluginConfiguration(request);
 
         // then: the returned value contains the banks as a JSON string
-        assertEquals( banks, result );
+        String expected = banks + "&&&key";
+        assertEquals(expected, result);
     }
 
     @Test
-    void retrievePluginConfiguration_exception(){
+    void retrievePluginConfiguration_exception() {
         // given: the HTTP client throws an exception (partner API could not be reached, for example)
-        doThrow( PluginException.class ).when( natixisHttpClient ).banks( any(RequestConfiguration.class) );
+        doThrow(PluginException.class).when(natixisHttpClient).banks(any(RequestConfiguration.class));
 
-        String initialConfiguration = "initial configuration";
+        String initialConfiguration = "initial configuration&&&key";
         RetrievePluginConfigurationRequest request = MockUtils.aRetrievePluginConfigurationRequestBuilder()
                 .withPluginConfiguration(initialConfiguration)
                 .build();
 
         // when: calling the method retrievePluginConfiguration
-        String result = service.retrievePluginConfiguration( request );
+        String result = service.retrievePluginConfiguration(request);
 
         // then: the returned value contains the initial plugin configuration
-        assertEquals( initialConfiguration, result );
+        assertEquals(initialConfiguration, result);
     }
 
 }

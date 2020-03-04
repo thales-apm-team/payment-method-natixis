@@ -4,9 +4,11 @@ import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.Constants;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.payment.natixis.utils.properties.ReleaseProperties;
+import com.payline.payment.natixis.utils.security.RSAUtils;
 import com.payline.pmapi.bean.configuration.ReleaseInformation;
 import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.InputParameter;
@@ -58,6 +60,7 @@ public class ConfigurationServiceImpl implements ConfigurationService {
     private ReleaseProperties releaseProperties = ReleaseProperties.getInstance();
     private I18nService i18n = I18nService.getInstance();
     private NatixisHttpClient natixisHttpClient = NatixisHttpClient.getInstance();
+    private RSAUtils rsaUtils = RSAUtils.getInstance();
 
     @Override
     public List<AbstractParameter> getParameters(Locale locale) {
@@ -234,8 +237,15 @@ public class ConfigurationServiceImpl implements ConfigurationService {
             // Retrieve account service providers list
             NatixisBanksResponse banks = natixisHttpClient.banks( requestConfiguration );
 
-            // Return as a JSON string
-            return banks.toString();
+            // get oldKey or generate first key
+            String key;
+            if (PluginUtils.isEmpty( retrievePluginConfigurationRequest.getPluginConfiguration() )){
+                key = rsaUtils.generateKey();
+            } else {
+                key = PluginUtils.extractKey( retrievePluginConfigurationRequest.getPluginConfiguration() );
+            }
+
+            return banks.toString() + PluginUtils.SEPARATOR + key;
         }
         catch( RuntimeException e ){
             LOGGER.error("Could not retrieve plugin configuration due to a plugin error", e );

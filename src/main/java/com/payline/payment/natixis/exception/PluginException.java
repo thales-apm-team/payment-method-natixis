@@ -1,10 +1,10 @@
 package com.payline.payment.natixis.exception;
 
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.payment.response.impl.PaymentResponseFailure;
 import com.payline.pmapi.bean.paymentform.response.configuration.impl.PaymentFormConfigurationResponseFailure;
 import com.payline.pmapi.bean.refund.response.impl.RefundResponseFailure;
-import com.payline.payment.natixis.utils.PluginUtils;
 
 /**
  * Generic exception which can be converted into the various ResponseFailure objects from the PM-API.

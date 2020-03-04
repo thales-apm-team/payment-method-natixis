@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class PluginUtils {
+    public static final String SEPARATOR = "&&&";
 
     /* Static utility class : no need to instantiate it (Sonar bug fix) */
     private PluginUtils(){}
@@ -134,5 +135,29 @@ public class PluginUtils {
         }
         return value;
     }
+
+    private static String extract(String s, int i) {
+        return s.split(SEPARATOR)[i];
+    }
+
+    public static String extractBanks(String s) {
+        return extract(s, 0);
+    }
+
+    public static String extractKey(String s) {
+        return extract(s, 1);
+
+    }
+
+    /**
+     * check if a String is null or empty
+     *
+     * @param s The string to check
+     * @return true if the String is empty
+     */
+    public static boolean isEmpty(String s) {
+        return (s == null || s.length() == 0);
+    }
+
 
 }
