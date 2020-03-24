@@ -4,9 +4,11 @@ import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.configuration.RequestConfiguration;
 import com.payline.payment.natixis.exception.PluginException;
+import com.payline.payment.natixis.utils.Constants;
 import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.http.NatixisHttpClient;
 import com.payline.payment.natixis.utils.properties.ReleaseProperties;
+import com.payline.pmapi.bean.configuration.PartnerConfiguration;
 import com.payline.pmapi.bean.configuration.ReleaseInformation;
 import com.payline.pmapi.bean.configuration.parameter.AbstractParameter;
 import com.payline.pmapi.bean.configuration.parameter.impl.ListBoxParameter;
@@ -201,6 +203,64 @@ class ConfigurationServiceImplTest {
 
         // then: the returned value contains the initial plugin configuration
         assertEquals(initialConfiguration, result);
+    }
+
+
+    @Test
+    void retrievePluginConfiguration_missingPaylineClientId(){
+        // given: the PartnerConfiguration is missing the paylineClientName
+        Map<String, String> partnerConfigurationMap = new HashMap<>();
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL, "https://np-auth.api.qua.natixis.com/api");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.CLIENT_SECRET, "XXXXXXX");
+
+        Map<String, String> sensitiveConfigurationMap = new HashMap<>();
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, MockUtils.aClientCertificatePem() );
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY, MockUtils.aPrivateKeyPem() );
+        PartnerConfiguration partnerConfiguration = new PartnerConfiguration( partnerConfigurationMap, sensitiveConfigurationMap );
+
+        String initialConfiguration = "initial configuration";
+        RetrievePluginConfigurationRequest request = MockUtils.aRetrievePluginConfigurationRequestBuilder()
+                .withPluginConfiguration(initialConfiguration)
+                .withPartnerConfiguration( partnerConfiguration )
+                .build();
+
+        // when: calling the method retrievePluginConfiguration
+        String result = service.retrievePluginConfiguration( request );
+
+        // then: the HTTP client is never called, and the result equals the initial configuration
+        verify( natixisHttpClient, never() ).init( any(PartnerConfiguration.class) );
+        verify( natixisHttpClient, never() ).banks( any(RequestConfiguration.class) );
+        assertEquals( initialConfiguration, result );
+    }
+
+    @Test
+    void retrievePluginConfiguration_missingClientSecret(){
+        // given: the PartnerConfiguration is missing the paylineOnboardingId
+        Map<String, String> partnerConfigurationMap = new HashMap<>();
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL, "https://np-auth.api.qua.natixis.com/api");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
+
+        Map<String, String> sensitiveConfigurationMap = new HashMap<>();
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, MockUtils.aClientCertificatePem() );
+        sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY, MockUtils.aPrivateKeyPem() );
+        PartnerConfiguration partnerConfiguration = new PartnerConfiguration( partnerConfigurationMap, sensitiveConfigurationMap );
+
+        String initialConfiguration = "initial configuration";
+        RetrievePluginConfigurationRequest request = MockUtils.aRetrievePluginConfigurationRequestBuilder()
+                .withPluginConfiguration(initialConfiguration)
+                .withPartnerConfiguration( partnerConfiguration )
+                .build();
+
+        // when: calling the method retrievePluginConfiguration
+        String result = service.retrievePluginConfiguration( request );
+
+        // then: the HTTP client is never called, and the result equals the initial configuration
+        verify( natixisHttpClient, never() ).init( any(PartnerConfiguration.class) );
+        verify( natixisHttpClient, never() ).banks( any(RequestConfiguration.class) );
+        assertEquals( initialConfiguration, result );
     }
 
 }
