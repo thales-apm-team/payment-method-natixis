@@ -36,6 +36,9 @@ public class Constants {
         public static final String CLIENT_PRIVATE_KEY = "clientPrivateKey";
         public static final String SIGNATURE_KEYID = "signatureKeyId";
 
+        public static final String CLIENT_ID = "clientId";
+        public static final String CLIENT_SECRET = "clientSecret";
+
         /* Static utility class : no need to instantiate it (Sonar bug fix) */
         private PartnerConfigurationKeys(){}
     }

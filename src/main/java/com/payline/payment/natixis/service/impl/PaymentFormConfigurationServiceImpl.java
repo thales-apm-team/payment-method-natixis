@@ -5,6 +5,7 @@ import com.payline.payment.natixis.bean.business.bank.Bank;
 import com.payline.payment.natixis.exception.InvalidDataException;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.LogoPaymentFormConfigurationService;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.paymentform.bean.field.SelectOption;
 import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
@@ -31,37 +32,36 @@ public class PaymentFormConfigurationServiceImpl extends LogoPaymentFormConfigur
             Locale locale = paymentFormConfigurationRequest.getLocale();
 
             // retrieve the banks list from the plugin configuration
-            if( paymentFormConfigurationRequest.getPluginConfiguration() == null ){
+            if (paymentFormConfigurationRequest.getPluginConfiguration() == null) {
                 throw new InvalidDataException("Plugin configuration must not be null");
             }
             final List<SelectOption> banks = new ArrayList<>();
-            for( Bank bank : NatixisBanksResponse.fromJson( paymentFormConfigurationRequest.getPluginConfiguration() ).getList() ){
+            String BankList = PluginUtils.extractBanks(paymentFormConfigurationRequest.getPluginConfiguration());
+            for (Bank bank : NatixisBanksResponse.fromJson(BankList).getList()) {
                 banks.add(SelectOption.SelectOptionBuilder.aSelectOption().withKey(bank.getBic()).withValue(bank.getName()).build());
             }
 
             // Build form
             CustomForm form = BankTransferForm.builder()
-                    .withBanks( banks )
-                    .withDescription( i18n.getMessage( "paymentForm.description", locale ) )
+                    .withBanks(banks)
+                    .withDescription(i18n.getMessage("paymentForm.description", locale))
                     .withDisplayButton(true)
-                    .withButtonText( i18n.getMessage( "paymentForm.buttonText", locale ) )
-                    .withCustomFields( new ArrayList<>() )
+                    .withButtonText(i18n.getMessage("paymentForm.buttonText", locale))
+                    .withCustomFields(new ArrayList<>())
                     .build();
 
             pfcResponse = PaymentFormConfigurationResponseSpecific.PaymentFormConfigurationResponseSpecificBuilder
                     .aPaymentFormConfigurationResponseSpecific()
-                    .withPaymentForm( form )
+                    .withPaymentForm(form)
                     .build();
-        }
-        catch( PluginException e ){
+        } catch (PluginException e) {
             pfcResponse = e.toPaymentFormConfigurationResponseFailureBuilder().build();
-        }
-        catch( RuntimeException e ){
+        } catch (RuntimeException e) {
             LOGGER.error("Unexpected plugin error", e);
             pfcResponse = PaymentFormConfigurationResponseFailure.PaymentFormConfigurationResponseFailureBuilder
                     .aPaymentFormConfigurationResponseFailure()
-                    .withErrorCode( PluginException.runtimeErrorCode( e ) )
-                    .withFailureCause( FailureCause.INTERNAL_ERROR )
+                    .withErrorCode(PluginException.runtimeErrorCode(e))
+                    .withFailureCause(FailureCause.INTERNAL_ERROR)
                     .build();
         }
 

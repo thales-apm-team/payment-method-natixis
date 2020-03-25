@@ -1,6 +1,5 @@
 package com.payline.payment.natixis.utils;
 
-import com.payline.pmapi.bean.common.FailureCause;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;

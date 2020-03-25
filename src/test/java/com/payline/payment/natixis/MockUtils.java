@@ -202,6 +202,8 @@ public class MockUtils {
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_AUTH_BASE_URL, "https://np-auth.api.qua.natixis.com/api");
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.API_PAYMENT_BASE_URL, "https://np.api.qua.natixis.com/hub-pisp/v1");
         partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.SIGNATURE_KEYID, "signature-key-id");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.CLIENT_ID, "XXXXXXX");
+        partnerConfigurationMap.put(Constants.PartnerConfigurationKeys.CLIENT_SECRET, "XXXXXXX");
 
         Map<String, String> sensitiveConfigurationMap = new HashMap<>();
         sensitiveConfigurationMap.put( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE, aClientCertificatePem() );
@@ -392,7 +394,7 @@ public class MockUtils {
      * Generate a valid plugin configuration, as a <code>String</code>.
      */
     public static String aPluginConfiguration(){
-        return "{\"accountServiceProviders\":[{\"bankCode\":\"30003\",\"bic\":\"SOGEFRPPXXX\",\"id\":\"SOGEFRPPXXX\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"STE GENERALE\",\"serviceLevel\":\"SEPA\"},{\"bankCode\":\"13135\",\"bic\":\"CEPAFRPP313\",\"id\":\"CEPAFRPP313\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\"}]}";
+        return "{\"accountServiceProviders\":[{\"bankCode\":\"30003\",\"bic\":\"SOGEFRPPXXX\",\"id\":\"SOGEFRPPXXX\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"STE GENERALE\",\"serviceLevel\":\"SEPA\"},{\"bankCode\":\"13135\",\"bic\":\"CEPAFRPP313\",\"id\":\"CEPAFRPP313\",\"localInstrument\":\"INST\",\"maxAmount\":15000.0,\"name\":\"CAISSE D EPARGNE DE MIDI PYRENEES\",\"serviceLevel\":\"SEPA\"}]}&&&thisIsAKey";
     }
 
     /**
