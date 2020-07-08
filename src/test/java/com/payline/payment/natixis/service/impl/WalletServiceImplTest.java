@@ -3,10 +3,12 @@ package com.payline.payment.natixis.service.impl;
 import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.utils.security.RSAUtils;
+import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.payment.PaymentFormContext;
 import com.payline.pmapi.bean.payment.Wallet;
 import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
 import com.payline.pmapi.bean.wallet.bean.WalletDisplay;
+import com.payline.pmapi.bean.wallet.bean.field.WalletDisplayFieldText;
 import com.payline.pmapi.bean.wallet.request.WalletCreateRequest;
 import com.payline.pmapi.bean.wallet.request.WalletDisplayRequest;
 import com.payline.pmapi.bean.wallet.response.WalletCreateResponse;
@@ -94,13 +96,13 @@ class WalletServiceImplTest {
         WalletCreateResponse response = service.createWallet(request);
 
         Assertions.assertEquals(WalletCreateResponseFailure.class, response.getClass());
+        WalletCreateResponseFailure responseFailure = (WalletCreateResponseFailure) response;
+        Assertions.assertEquals(FailureCause.INTERNAL_ERROR, responseFailure.getFailureCause());
+        Assertions.assertEquals("foo", responseFailure.getErrorCode());
     }
 
     @Test
     void createWalletFailureNoPluginConfiguration() {
-
-        Mockito.doThrow(new PluginException("foo")).when(rsaUtils).encrypt(anyString(), anyString());
-
         Map<String, String> paymentFormDataContext = new HashMap<>();
         paymentFormDataContext.put(BankTransferForm.BANK_KEY, "thisIsABank");
 
@@ -110,11 +112,14 @@ class WalletServiceImplTest {
                 .build();
         WalletCreateRequest request = WalletCreateRequest.builder()
                 .paymentFormContext(context)
-                .pluginConfiguration("")
+                .pluginConfiguration("") // will create an ArrayIndexOutOfBoundsException
                 .build();
         WalletCreateResponse response = service.createWallet(request);
 
         Assertions.assertEquals(WalletCreateResponseFailure.class, response.getClass());
+        WalletCreateResponseFailure responseFailure = (WalletCreateResponseFailure) response;
+        Assertions.assertEquals(FailureCause.INTERNAL_ERROR, responseFailure.getFailureCause());
+        Assertions.assertEquals("plugin error: ArrayIndexOutOfBoundsException: 1", responseFailure.getErrorCode());
     }
 
     @Test
@@ -134,6 +139,9 @@ class WalletServiceImplTest {
         WalletDisplay response = (WalletDisplay) service.displayWallet(request);
         Assertions.assertNotNull(response.getWalletFields());
         Assertions.assertEquals(1, response.getWalletFields().size());
+        Assertions.assertEquals(WalletDisplayFieldText.class, response.getWalletFields().get(0).getClass());
+        WalletDisplayFieldText field = (WalletDisplayFieldText) response.getWalletFields().get(0);
+        Assertions.assertEquals(pluginPaymentData, field.getContent());
     }
 
     @Test

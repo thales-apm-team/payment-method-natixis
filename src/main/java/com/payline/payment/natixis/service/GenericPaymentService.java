@@ -65,6 +65,7 @@ public class GenericPaymentService {
                 throw new InvalidDataException("paymentRequest.amount.currency is required");
             }
 
+
             // Extract data from PaymentRequest
             String debtorName = null;
             if (paymentRequest.getBuyer() != null && paymentRequest.getBuyer().getFullName() != null) {
@@ -79,7 +80,18 @@ public class GenericPaymentService {
                 Buyer.Address address = paymentRequest.getBuyer().getAddresses().get(Buyer.AddressType.BILLING);
                 PostalAddress.PostalAddressBuilder builder = new PostalAddress.PostalAddressBuilder();
                 builder.withCountry(address.getCountry());
-                builder.addAddressLine(PluginUtils.replaceChars(address.getStreet1() + " " + address.getStreet2()));
+
+                StringBuilder street = new StringBuilder();
+                if (!PluginUtils.isEmpty(address.getStreet1())) {
+                    street.append(address.getStreet1());
+                    street.append(" ");
+                }
+
+                if (!PluginUtils.isEmpty(address.getStreet2())) {
+                    street.append(address.getStreet2());
+                }
+
+                builder.addAddressLine(PluginUtils.replaceChars(street.toString()));
                 builder.addAddressLine(PluginUtils.replaceChars(address.getZipCode() + " " + address.getCity()));
                 debtorPostalAddress = builder.build();
             }
@@ -145,8 +157,11 @@ public class GenericPaymentService {
             NatixisPaymentInitResponse response = natixisHttpClient.paymentInit(payment, psuInformation, configuration);
 
             // URL
-            PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder redirectionRequestBuilder = PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder.aRedirectionRequest()
-                    .withUrl(response.getContentApprovalUrl());
+            PaymentResponseRedirect.RedirectionRequest redirectionRequest = PaymentResponseRedirect.RedirectionRequest.RedirectionRequestBuilder
+                    .aRedirectionRequest()
+                    .withUrl(response.getContentApprovalUrl())
+                    .withRequestType(PaymentResponseRedirect.RedirectionRequest.RequestType.GET)
+                    .build();
 
             // request context
             Map<String, String> requestData = new HashMap<>();
@@ -160,10 +175,11 @@ public class GenericPaymentService {
             paymentResponse = PaymentResponseRedirect.PaymentResponseRedirectBuilder.aPaymentResponseRedirect()
                     .withPartnerTransactionId(response.getPaymentId())
                     .withStatusCode(response.getStatusCode())
-                    .withRedirectionRequest(new PaymentResponseRedirect.RedirectionRequest(redirectionRequestBuilder))
+                    .withRedirectionRequest(redirectionRequest)
                     .withRequestContext(requestContext)
                     .build();
         } catch (PluginException e) {
+            LOGGER.error(e.getMessage(), e);
             paymentResponse = e.toPaymentResponseFailureBuilder().build();
         } catch (RuntimeException e) {
             LOGGER.error("Unexpected plugin error", e);
@@ -180,11 +196,13 @@ public class GenericPaymentService {
 
     /**
      * Format the {@link BigInteger} amount in smallest units to {@link String} amount in euros.
+     * ex: 1599  will be "15.99"
      *
      * @param amountInSmallestUnit The amount in smallest units
      * @return The amount in euros, as a string
      */
     String formatAmount(BigInteger amountInSmallestUnit) {
+        // NumberFormat initiated with an English Locale will use a dot (".") as fraction
         NumberFormat nf = NumberFormat.getInstance(Locale.UK);
         nf.setMinimumFractionDigits(2);
         return nf.format(amountInSmallestUnit.floatValue() / 100);

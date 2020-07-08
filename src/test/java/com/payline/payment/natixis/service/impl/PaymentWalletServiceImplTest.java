@@ -4,6 +4,7 @@ import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.exception.PluginException;
 import com.payline.payment.natixis.service.GenericPaymentService;
 import com.payline.payment.natixis.utils.security.RSAUtils;
+import com.payline.pmapi.bean.common.FailureCause;
 import com.payline.pmapi.bean.payment.Wallet;
 import com.payline.pmapi.bean.payment.request.WalletPaymentRequest;
 import com.payline.pmapi.bean.payment.response.PaymentResponse;
@@ -41,7 +42,7 @@ class PaymentWalletServiceImplTest {
     }
 
     @Test
-    void walletPaymentRequest() throws Exception{
+    void walletPaymentRequest() throws Exception {
         // given: a valid walletPaymentRequest
         Wallet wallet = Wallet.builder()
                 .pluginPaymentData("thisIsWalletEncryptedData")
@@ -58,26 +59,27 @@ class PaymentWalletServiceImplTest {
                 .withUrl(new URL("http://www.foo.com"))
                 .build();
 
-        PaymentResponseRedirect responseRedirect = PaymentResponseRedirect.PaymentResponseRedirectBuilder
+        PaymentResponseRedirect mockedResponseRedirect = PaymentResponseRedirect.PaymentResponseRedirectBuilder
                 .aPaymentResponseRedirect()
                 .withPartnerTransactionId("123123")
                 .withStatusCode("foo")
                 .withRedirectionRequest(redirectionRequest)
                 .build();
 
-        doReturn(responseRedirect).when(genericPaymentService).paymentRequest(any(), anyString());
-
+        doReturn(mockedResponseRedirect).when(genericPaymentService).paymentRequest(any(), anyString());
         doReturn("PSSTFRPP").when(rsaUtils).decrypt(any(), any());
 
         // when: calling paymentRequest() method
-        PaymentResponse paymentResponse = service.walletPaymentRequest( paymentRequest );
+        PaymentResponse paymentResponse = service.walletPaymentRequest(paymentRequest);
 
         // then: the payment response is a success
-        assertEquals( PaymentResponseRedirect.class, paymentResponse.getClass() );
+        assertEquals(PaymentResponseRedirect.class, paymentResponse.getClass());
+        PaymentResponseRedirect responseRedirect = (PaymentResponseRedirect) paymentResponse;
+        assertEquals(mockedResponseRedirect, responseRedirect);
     }
 
     @Test
-    void walletPaymentRequestFailure() throws Exception{
+    void walletPaymentRequestFailure() throws Exception {
         // given: a valid walletPaymentRequest
         Wallet wallet = Wallet.builder()
                 .pluginPaymentData("thisIsWalletEncryptedData")
@@ -102,13 +104,15 @@ class PaymentWalletServiceImplTest {
                 .build();
 
         doReturn(responseRedirect).when(genericPaymentService).paymentRequest(any(), anyString());
-
         doThrow(new PluginException("foo")).when(rsaUtils).decrypt(any(), any());
 
         // when: calling paymentRequest() method
-        PaymentResponse paymentResponse = service.walletPaymentRequest( paymentRequest );
+        PaymentResponse paymentResponse = service.walletPaymentRequest(paymentRequest);
 
         // then: the payment response is a success
-        assertEquals( PaymentResponseFailure.class, paymentResponse.getClass() );
+        assertEquals(PaymentResponseFailure.class, paymentResponse.getClass());
+        PaymentResponseFailure responseFailure = (PaymentResponseFailure) paymentResponse;
+        assertEquals("plugin error: PluginException: foo",  responseFailure.getErrorCode());
+        assertEquals(FailureCause.INTERNAL_ERROR, responseFailure.getFailureCause());
     }
 }
