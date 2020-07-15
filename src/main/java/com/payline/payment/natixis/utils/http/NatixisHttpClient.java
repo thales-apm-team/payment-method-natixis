@@ -28,17 +28,17 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.ssl.SSLContexts;
 import org.apache.logging.log4j.Logger;
 import org.tomitribe.auth.signatures.Algorithm;
 import org.tomitribe.auth.signatures.Base64;
 import org.tomitribe.auth.signatures.Signature;
 import org.tomitribe.auth.signatures.Signer;
 
-import javax.net.ssl.SSLContext;
+import javax.net.ssl.HttpsURLConnection;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -126,7 +126,6 @@ public class NatixisHttpClient {
                     .setSocketTimeout(socketTimeout * 1000)
                     .build();
 
-            SSLContext sslContext;
             try {
                 // Build RSA holder from PartnerConfiguration
                 if( partnerConfiguration.getProperty( Constants.PartnerConfigurationKeys.CLIENT_CERTIFICATE ) == null ){
@@ -141,10 +140,6 @@ public class NatixisHttpClient {
                         .parsePrivateKey( partnerConfiguration.getProperty(Constants.PartnerConfigurationKeys.CLIENT_PRIVATE_KEY) )
                         .build();
 
-                // SSL context
-                sslContext = SSLContexts.custom()
-                        .loadKeyMaterial(this.rsaHolder.getKeyStore(), this.rsaHolder.getPrivateKeyPassword())
-                        .build();
             } catch ( IOException | GeneralSecurityException e ){
                 throw new PluginException( "A problem occurred initializing SSL context", FailureCause.INVALID_DATA, e );
             }
@@ -152,8 +147,8 @@ public class NatixisHttpClient {
             // instantiate Apache HTTP client
             this.client = HttpClientBuilder.create()
                     .useSystemProperties()
-                    .setDefaultRequestConfig(requestConfig)
-                    .setSSLContext( sslContext )
+                    .setDefaultRequestConfig( requestConfig )
+                    .setSSLSocketFactory(new SSLConnectionSocketFactory(HttpsURLConnection.getDefaultSSLSocketFactory(), SSLConnectionSocketFactory.getDefaultHostnameVerifier()))
                     .build();
         }
     }

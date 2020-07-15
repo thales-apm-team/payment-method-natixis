@@ -3,6 +3,7 @@ package com.payline.payment.natixis.service.impl;
 import com.payline.payment.natixis.MockUtils;
 import com.payline.payment.natixis.bean.business.NatixisBanksResponse;
 import com.payline.payment.natixis.bean.business.bank.Bank;
+import com.payline.payment.natixis.utils.PluginUtils;
 import com.payline.payment.natixis.utils.i18n.I18nService;
 import com.payline.pmapi.bean.paymentform.bean.form.AbstractPaymentForm;
 import com.payline.pmapi.bean.paymentform.bean.form.BankTransferForm;
@@ -93,7 +94,7 @@ class PaymentFormConfigurationServiceImplTest {
                 .when( i18n )
                 .getMessage( anyString(), any(Locale.class) );
         PaymentFormConfigurationRequest request = MockUtils.aPaymentFormConfigurationRequest();
-        List<Bank> banks = NatixisBanksResponse.fromJson( request.getPluginConfiguration() ).getList();
+        List<Bank> banks = NatixisBanksResponse.fromJson( PluginUtils.extractBanks( MockUtils.aPluginConfiguration()) ).getList();
 
         // when: calling getPaymentFormConfiguration method
         PaymentFormConfigurationResponse response = service.getPaymentFormConfiguration( request );

@@ -1,15 +1,12 @@
 package com.payline.payment.natixis.utils.http;
 
 import org.apache.http.Header;
-import org.apache.http.HttpStatus;
 import org.apache.http.ProtocolVersion;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicStatusLine;
 import org.mockito.internal.util.reflection.FieldSetter;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 

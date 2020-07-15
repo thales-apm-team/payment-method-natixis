@@ -1,6 +1,6 @@
 package com.payline.payment.natixis.bean.business.authorization;
 
-import com.google.gson.*;
+import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 public class NatixisAuthorizationResponse {
